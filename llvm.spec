@@ -14,7 +14,7 @@
 %define debug_package %{nil}
 
 Name:           llvm
-Version:        2.4
+Version:        2.5
 Release:        4%{?dist}
 Summary:        The Low Level Virtual Machine
 
@@ -23,10 +23,12 @@ License:        NCSA
 URL:            http://llvm.org/
 Source0:        http://llvm.org/releases/%{version}/llvm-%{version}.tar.gz
 %if %{?_with_gcc:1}%{!?_with_gcc:0}
-Source1:        http://llvm.org/releases/%{version}/llvm-gcc%{lgcc_version}-%{version}.source.tar.gz
+Source1:        http://llvm.org/releases/%{version}/llvm-gcc-%{lgcc_version}-%{version}.source.tar.gz
 %endif
 Patch0:         llvm-2.1-fix-sed.patch
 Patch1:         llvm-2.4-fix-ocaml.patch
+# http://llvm.org/bugs/show_bug.cgi?id=3726
+Patch2:         llvm-2.5-gcc44.patch
 
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -143,9 +145,12 @@ for developing applications that use %{name}-ocaml.
 
 %patch0 -p1 -b .fix-sed
 %patch1 -p1 -b .fix-ocaml
+%patch2 -p1 -b .gcc44
 
 %build
 # Note: --enable-pic can be turned off when 2.6 comes out
+#       and up to 2.5, unsafe on 32-bit archs (in our case,
+#       anything but x86_64)
 %configure \
   --libdir=%{_libdir}/%{name} \
   --datadir=%{_datadir}/%{name}-%{version} \
@@ -154,8 +159,9 @@ for developing applications that use %{name}-ocaml.
   --enable-debug-runtime \
   --enable-jit \
   --enable-optimized \
-  --enable-pic \
-  --with-pic
+%ifarch x86_64
+  --enable-pic
+%endif
 #   --enable-targets=host-only \
 
 make %{_smp_mflags} OPTIMIZE_OPTION='%{optflags}'
@@ -346,6 +352,10 @@ rm -rf %{buildroot}
 
 
 %changelog
+* Sat Aug 22 2009 Michel Salim <salimma@fedoraproject.org> - 2.5-4
+- Disable use of position-independent code on 32-bit platforms
+  (buggy in LLVM <= 2.5)
+
 * Wed Mar  4 2009 Michel Salim <salimma@fedoraproject.org> - 2.4-4
 - Remove build scripts; they require the build directory to work
 
