@@ -171,6 +171,9 @@ file %{buildroot}/%{_libdir}/llvm/*.so | awk -F: '$2~/ELF/{print $1}' | xargs -r
 # Get rid of erroneously installed example files.
 rm %{buildroot}%{_libdir}/%{name}/*LLVMHello.*
 
+# And OCaml .o files
+rm %{buildroot}%{_libdir}/ocaml/*.o
+
 # Remove deprecated tools.
 rm %{buildroot}%{_bindir}/gcc{as,ld}
 
