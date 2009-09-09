@@ -3,9 +3,14 @@
 # --with doxygen
 #   The doxygen docs are HUGE, so they are not built by default.
 
+# LLVM object files don't contain build IDs.  I don't know why yet.
+# Suppress their generation for now.
+
+%define debug_package %{nil}
+
 Name:           llvm
 Version:        2.5
-Release:        8%{?dist}
+Release:        7%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -151,7 +156,6 @@ cd obj
 chmod -x examples/Makefile
 
 make install DESTDIR=%{buildroot} \
-     KEEP_SYMBOLS=1 \
      PROJ_docsdir=/moredocs
 
 # Move documentation back to build directory
@@ -247,9 +251,6 @@ rm -rf %{buildroot}
 
 
 %changelog
-* Wed Sep  9 2009 Michel Salim <salimma@fedoraproject.org> - 2.5-8
-- Enable debuginfo (Jerry James, bz#521283)
-
 * Tue Sep  8 2009 Michel Salim <salimma@fedoraproject.org> - 2.5-7
 - Backport destdir patch from 2.6
 
