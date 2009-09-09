@@ -2,11 +2,6 @@
 #
 # --with doxygen
 #   The doxygen docs are HUGE, so they are not built by default.
-#
-# --with gcc
-#   The llvm-gcc package doesn't currently build.
-
-%define lgcc_version 4.2
 
 # LLVM object files don't contain build IDs.  I don't know why yet.
 # Suppress their generation for now.
@@ -15,20 +10,21 @@
 
 Name:           llvm
 Version:        2.5
-Release:        5%{?dist}
+Release:        7%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
 License:        NCSA
 URL:            http://llvm.org/
-Source0:        http://llvm.org/releases/%{version}/llvm-%{version}.tar.gz
-%if %{?_with_gcc:1}%{!?_with_gcc:0}
-Source1:        http://llvm.org/releases/%{version}/llvm-gcc-%{lgcc_version}-%{version}.source.tar.gz
-%endif
+Source0:        http://llvm.org/prereleases/%{version}/llvm-%{version}.tar.gz
 Patch0:         llvm-2.1-fix-sed.patch
-Patch1:         llvm-2.4-fix-ocaml.patch
+# http://llvm.org/bugs/show_bug.cgi?id=3153
+# backported from 2.6 patch
+Patch1:         llvm-2.5-destdir.patch
 # http://llvm.org/bugs/show_bug.cgi?id=3726
 Patch2:         llvm-2.5-gcc44.patch
+# http://llvm.org/bugs/show_bug.cgi?id=4911
+Patch3:         llvm-2.5-tclsh_check.patch
 
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -39,6 +35,8 @@ BuildRequires:  gcc-c++ >= 3.4
 BuildRequires:  groff
 BuildRequires:  libtool-ltdl-devel
 BuildRequires:  ocaml-ocamldoc
+# for DejaGNU test suite
+BuildRequires:  dejagnu tcl-devel python
 %if %{?_with_doxygen:1}%{!?_with_doxygen:0}
 BuildRequires:  doxygen graphviz
 %endif
@@ -53,11 +51,6 @@ link-time, runtime, and idle-time optimization of programs from
 arbitrary programming languages.  The compiler infrastructure includes
 mirror sets of programming tools as well as libraries with equivalent
 functionality.
-
-%if %{?_with_gcc:1}%{!?_with_gcc:0}
-It currently supports compilation of C and C++ programs, using front
-ends derived from GCC %{lgcc_version}.
-%endif
 
 
 %package devel
@@ -79,32 +72,6 @@ Requires:       %{name} = %{version}-%{release}
 
 %description doc
 Documentation for the LLVM compiler infrastructure.
-
-
-%if %{?_with_gcc:1}%{!?_with_gcc:0}
-
-%package gcc
-Summary:        C compiler for LLVM
-License:        GPL+
-Group:          Development/Languages
-Requires:       %{name} = %{version}-%{release}
-
-
-%description gcc
-C compiler for LLVM.
-
-
-%package gcc-c++
-Summary:        C++ compiler for LLVM
-License:        GPL+
-Group:          Development/Languages
-Requires:       %{name}-gcc = %{version}-%{release}
-
-
-%description gcc-c++
-C++ compiler for LLVM.
-
-%endif
 
 
 %if %{?_with_doxygen:1}%{!?_with_doxygen:0}
@@ -140,122 +107,82 @@ The %{name}-ocaml-devel package contains libraries and signature files
 for developing applications that use %{name}-ocaml.
 
 
-%prep
-%setup -q -n llvm-%{version} %{?_with_gcc:-a1}
+%package ocaml-doc
+Summary:        Documentation for LLVM's OCaml binding
+Group:          Documentation
+Requires:       %{name}-ocaml = %{version}-%{release}
 
+%description ocaml-doc
+HTML documentation for LLVM's OCaml binding.
+
+
+
+%prep
+%setup -q
 %patch0 -p1 -b .fix-sed
-%patch1 -p1 -b .fix-ocaml
+%patch1 -p1 -b .destdir
 %patch2 -p1 -b .gcc44
+%patch3 -p1 -b .tclsh_check
+
 
 %build
-# Note: --enable-pic can be turned off when 2.6 comes out
-#       and up to 2.5, unsafe on 32-bit archs (in our case,
-#       anything but x86_64)
-%configure \
+# Disabling assertions now, rec. by pure and needed for OpenGTL
+# no PIC on ix86: http://llvm.org/bugs/show_bug.cgi?id=3239
+mkdir obj && cd obj
+../configure \
+  --prefix=%{_prefix} \
   --libdir=%{_libdir}/%{name} \
-  --datadir=%{_datadir}/%{name}-%{version} \
-  --disable-static \
-  --enable-assertions \
+  --disable-assertions \
   --enable-debug-runtime \
   --enable-jit \
-  --enable-optimized \
-%ifnarch %ix86
-  --enable-pic
+%ifnarch %{ix86}
+  --enable-pic=yes
 %endif
-#   --enable-targets=host-only \
+
+# FIXME file this
+# configure does not properly specify libdir
+sed -i 's|(PROJ_prefix)/lib|(PROJ_prefix)/%{_lib}/%{name}|g' Makefile.config
 
 make %{_smp_mflags} OPTIMIZE_OPTION='%{optflags}'
-# tools-only VERBOSE=1 OmitFramePointer='' REQUIRES_EH=1 \
-#  OPTIMIZE_OPTION='%{optflags}'
 
-%if %{?_with_gcc:1}%{!?_with_gcc:0}
-# Build llvm-gcc.
 
-export PATH=%{_builddir}/%{?buildsubdir}/Release/bin:$PATH
+%check
+(cd obj && make check) 2>&1 | tee testlog.txt || true
 
-mkdir llvm-gcc%{lgcc_version}-%{version}.source/build
-cd llvm-gcc%{lgcc_version}-%{version}.source/build
-
-../configure \
-  --host=%{_host} \
-  --build=%{_build} \
-  --target=%{_target_platform} \
-  --prefix=%{_libdir}/llvm-gcc \
-  --libdir=%{_libdir}/llvm-gcc/%{_lib} \
-  --enable-threads \
-  --disable-nls \
-%ifarch x86_64
-  --disable-multilib \
-  --disable-shared \
-%endif
-  --enable-languages=c,c++ \
-  --enable-llvm=%{_builddir}/%{?buildsubdir} \
-  --program-prefix=llvm-
-make %{_smp_mflags} LLVM_VERSION_INFO=%{version}
-%endif
 
 %install
 rm -rf %{buildroot}
+cd obj
 chmod -x examples/Makefile
-# OVERRIDE_libdir used by our patched Makefile.ocaml:
-# see http://llvm.org/bugs/show_bug.cgi?id=3153
-make install DESTDIR=%{buildroot} \
-     PROJ_libdir=%{buildroot}/%{_libdir}/%{name} \
-     OVERRIDE_libdir=%{_libdir}/%{name}/%{name} \
-     PROJ_docsdir=`pwd`/moredocs
 
-#make install \
-#  PROJ_prefix=%{buildroot}/%{_prefix} \
-#  PROJ_bindir=%{buildroot}/%{_bindir} \
-#  PROJ_libdir=%{buildroot}/%{_libdir}/%{name} \
-#  PROJ_datadir=%{buildroot}/%{_datadir} \
-#  PROJ_docsdir=%{buildroot}/%{_docdir}/%{name}-%{version} \
-#  PROJ_etcdir=%{buildroot}/%{_datadir}/%{name}-%{version} \
-#  PROJ_includedir=%{buildroot}/%{_includedir} \
-#  PROJ_infodir=%{buildroot}/%{_infodir} \
-#  PROJ_mandir=%{buildroot}/%{_mandir}
+make install DESTDIR=%{buildroot} \
+     PROJ_docsdir=/moredocs
+
+# Move documentation back to build directory
+# 
+mv %{buildroot}/moredocs ../
+rm ../moredocs/*.tar.gz
+rm ../moredocs/ocamldoc/html/*.tar.gz
+
 find %{buildroot} -name .dir -print0 | xargs -0r rm -f
 file %{buildroot}/%{_bindir}/* | awk -F: '$2~/ELF/{print $1}' | xargs -r chrpath -d
+file %{buildroot}/%{_libdir}/llvm/*.so | awk -F: '$2~/ELF/{print $1}' | xargs -r chrpath -d
 
 # Get rid of erroneously installed example files.
-rm %{buildroot}%{_libdir}/%{name}/LLVMHello.*
-
-# And OCaml .o files
-rm %{buildroot}%{_libdir}/ocaml/*.o
-
-# Use relative links for ocaml's libLLVM*.a
-#(cd %{buildroot}%{_libdir}/ocaml && for i in libLLVM*.a; do
-#    ln -sf %{_libdir}/llvm/$i $i;
-# done)
+rm %{buildroot}%{_libdir}/%{name}/*LLVMHello.*
 
 # Remove deprecated tools.
 rm %{buildroot}%{_bindir}/gcc{as,ld}
 
+# FIXME file this bug
 sed -i 's,ABS_RUN_DIR/lib",ABS_RUN_DIR/%{_lib}/%{name}",' \
   %{buildroot}%{_bindir}/llvm-config
 
-chmod -x %{buildroot}%{_libdir}/%{name}/*.[oa]
+chmod -x %{buildroot}%{_libdir}/%{name}/*.a
 
 # remove documentation makefiles:
 # they require the build directory to work
-find examples -name 'Makefile'
-
-%if %{?_with_gcc:1}%{!?_with_gcc:0}
-# Install llvm-gcc.
-
-make -C llvm-gcc%{lgcc_version}-%{version}.source/build install DESTDIR=%{buildroot}
-cd %{buildroot}%{_libdir}/llvm-gcc/%{_lib}
-find . -name '*.la' -print0 | xargs -0r rm
-find . -name '*.a' -exec %{buildroot}%{_bindir}/llvm-ranlib {} \;
-cd ../bin
-ln llvm-c++ llvm-gcc llvm-g++ %{buildroot}%{_bindir}
-rm llvm-cpp llvm-gccbug llvm-gcov %{_target_platform}-gcc*
-cd ..
-mv man/man1/llvm-gcc.1 man/man1/llvm-g++.1 %{buildroot}%{_mandir}/man1
-rm -r info man %{_lib}/libiberty.a
-rm -r libexec/gcc/%{_target_platform}/%{lgcc_version}/install-tools
-rm -r %{_lib}/gcc/%{_target_platform}/%{lgcc_version}/install-tools
-%endif
+find examples -name 'Makefile' | xargs -0r rm -f
 
 
 %clean
@@ -286,7 +213,6 @@ rm -rf %{buildroot}
 %exclude %{_mandir}/man1/llvm-gcc.*
 %endif
 
-
 %files devel
 %defattr(-,root,root,-)
 %{_bindir}/llvm-config
@@ -294,6 +220,9 @@ rm -rf %{buildroot}
 %{_includedir}/%{name}-c
 %{_libdir}/%{name}
 
+%files doc
+%defattr(-,root,root,-)
+%doc examples moredocs/html
 
 %files ocaml
 %defattr(-,root,root,-)
@@ -306,10 +235,9 @@ rm -rf %{buildroot}
 %{_libdir}/ocaml/*.cmx*
 %{_libdir}/ocaml/*.mli
 
-%files doc
+%files ocaml-doc
 %defattr(-,root,root,-)
-%doc docs/*.{html,css} docs/img examples moredocs/*
-
+%doc moredocs/ocamldoc/html/*
 
 %if %{?_with_doxygen:1}%{!?_with_doxygen:0}
 %files apidoc
@@ -318,40 +246,16 @@ rm -rf %{buildroot}
 %endif
 
 
-%if %{?_with_gcc:1}%{!?_with_gcc:0}
-%files gcc
-%defattr(-,root,root,-)
-%{_bindir}/llvm-gcc
-%dir %{_libdir}/llvm-gcc
-%dir %{_libdir}/llvm-gcc/bin
-%dir %{_libdir}/llvm-gcc/include
-%dir %{_libdir}/llvm-gcc/%{_lib}
-%dir %{_libdir}/llvm-gcc/libexec
-%dir %{_libdir}/llvm-gcc/libexec/gcc
-%dir %{_libdir}/llvm-gcc/libexec/gcc/%{_target_platform}/%{lgcc_version}
-%{_libdir}/llvm-gcc/%{_lib}/gcc
-%{_libdir}/llvm-gcc/%{_lib}/libmudflap*.a
-%{_libdir}/llvm-gcc/bin/%{_target_platform}-llvm-gcc
-%{_libdir}/llvm-gcc/bin/llvm-gcc
-%{_libdir}/llvm-gcc/include/mf-runtime.h
-%{_libdir}/llvm-gcc/libexec/gcc/%{_target_platform}/%{lgcc_version}/cc1
-%{_libdir}/llvm-gcc/libexec/gcc/%{_target_platform}/%{lgcc_version}/collect2
-%doc %{_mandir}/man1/llvm-gcc.*
-
-
-%files gcc-c++
-%defattr(-,root,root,-)
-%{_bindir}/llvm-[cg]++
-%{_libdir}/llvm-gcc/%{_lib}/lib*++.a
-%{_libdir}/llvm-gcc/bin/%{_target_platform}-llvm-[cg]++
-%{_libdir}/llvm-gcc/bin/llvm-[cg]++
-%{_libdir}/llvm-gcc/include/c++
-%{_libdir}/llvm-gcc/libexec/gcc/%{_target_platform}/%{lgcc_version}/cc1plus
-%doc %{_mandir}/man1/llvm-g++.*
-%endif
-
 
 %changelog
+* Tue Sep  8 2009 Michel Salim <salimma@fedoraproject.org> - 2.5-7
+- Backport destdir patch from 2.6
+
+* Sat Sep  5 2009 Michel Salim <salimma@fedoraproject.org> - 2.5-6
+- Disable assertions (needed by OpenGTL)
+- Align spec file with upstream build instructions
+- Enable unit tests
+
 * Sat Aug 22 2009 Michel Salim <salimma@fedoraproject.org> - 2.5-5
 - Only disable PIC on %%ix86; ppc actually needs it
 
@@ -359,10 +263,14 @@ rm -rf %{buildroot}
 - Disable use of position-independent code on 32-bit platforms
   (buggy in LLVM <= 2.5)
 
-* Wed Mar  4 2009 Michel Salim <salimma@fedoraproject.org> - 2.4-4
+* Sat Jul 25 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.5-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_12_Mass_Rebuild
+
+* Wed Mar  4 2009 Michel Salim <salimma@fedoraproject.org> - 2.5-2
 - Remove build scripts; they require the build directory to work
 
-* Wed Mar  4 2009 Michel Salim <salimma@fedoraproject.org> - 2.4-3
+* Wed Mar  4 2009 Michel Salim <salimma@fedoraproject.org> - 2.5-1
+- Update to 2.5
 - Package build scripts (bug #457881)
 
 * Tue Dec  2 2008 Michel Salim <salimma@fedoraproject.org> - 2.4-2
