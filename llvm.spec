@@ -3,9 +3,16 @@
 # --with doxygen
 #   The doxygen docs are HUGE, so they are not built by default.
 
+%ifarch s390 s390x sparc64
+  # No ocaml on these arches
+  %bcond_with ocaml
+%else
+  %bcond_without ocaml
+%endif
+
 Name:           llvm
 Version:        2.7
-Release:        5%{?dist}
+Release:        11%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -15,10 +22,7 @@ Source0:        http://llvm.org/releases/%{version}/llvm-%{version}.tgz
 Source1:        http://llvm.org/releases/%{version}/clang-%{version}.tgz
 # Data files should be installed with timestamps preserved
 Patch0:         llvm-2.6-timestamp.patch
-# http://llvm.org/bugs/show_bug.cgi?id=7307
-Patch1:         llvm-2.7-cxx_includes.patch
-
-BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+Patch1:         clang-2.7-nodebug.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -26,7 +30,9 @@ BuildRequires:  flex
 BuildRequires:  gcc-c++ >= 3.4
 BuildRequires:  groff
 BuildRequires:  libtool-ltdl-devel
+%if %{with ocaml}
 BuildRequires:  ocaml-ocamldoc
+%endif
 # for DejaGNU test suite
 BuildRequires:  dejagnu tcl-devel python
 # for doxygen documentation
@@ -147,6 +153,7 @@ API documentation for the Clang compiler.
 %endif
 
 
+%if %{with ocaml}
 %package        ocaml
 Summary:        OCaml binding for LLVM
 Group:          Development/Libraries
@@ -177,7 +184,7 @@ Requires:       %{name}-ocaml = %{version}-%{release}
 
 %description ocaml-doc
 HTML documentation for LLVM's OCaml binding.
-
+%endif
 
 
 %prep
@@ -185,7 +192,9 @@ HTML documentation for LLVM's OCaml binding.
 mv clang-%{version} tools/clang
 
 %patch0 -p1 -b .timestamp
-%patch1 -p1 -b .cxx_includes
+pushd tools/clang
+%patch1 -p2 -b .nodebug
+popd
 
 # Encoding fix
 (cd tools/clang/docs && \
@@ -206,7 +215,10 @@ mv clang-%{version} tools/clang
   --disable-assertions \
   --enable-debug-runtime \
   --enable-jit \
-  --enable-shared
+  --enable-shared \
+  --with-c-include-dirs=%{_includedir}:$(echo %{_prefix}/lib/gcc/*/*/include) \
+  --with-cxx-include-root=$(echo %{_includedir}/c++/*) \
+  --with-cxx-include-arch=%{_arch}-%{_vendor}-%{_os}
 
 # FIXME file this
 # configure does not properly specify libdir
@@ -252,8 +264,14 @@ done
 # Move documentation back to build directory
 # 
 mv %{buildroot}/moredocs .
-rm moredocs/*.tar.gz
-rm moredocs/ocamldoc/html/*.tar.gz
+rm -f moredocs/*.tar.gz
+rm -f moredocs/ocamldoc/html/*.tar.gz
+
+# and separate the apidoc
+%if 0%{?_with_doxygen}
+mv moredocs/html/doxygen apidoc
+mv tools/clang/docs/doxygen/html clang-apidoc
+%endif
 
 # and separate the apidoc
 %if 0%{?_with_doxygen}
@@ -287,10 +305,6 @@ chmod -x %{buildroot}%{_libdir}/%{name}/*.a
 # remove documentation makefiles:
 # they require the build directory to work
 find examples -name 'Makefile' | xargs -0r rm -f
-
-
-%clean
-rm -rf %{buildroot}
 
 
 %post -p /sbin/ldconfig
@@ -349,6 +363,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %doc examples moredocs/html
 
+%if %{with ocaml}
 %files ocaml
 %defattr(-,root,root,-)
 %{_libdir}/ocaml/*.cma
@@ -363,6 +378,7 @@ rm -rf %{buildroot}
 %files ocaml-doc
 %defattr(-,root,root,-)
 %doc moredocs/ocamldoc/html/*
+%endif
 
 %if 0%{?_with_doxygen}
 %files apidoc
@@ -376,6 +392,29 @@ rm -rf %{buildroot}
 
 
 %changelog
+* Fri Oct 15 2010 Michel Salim <salimma@fedoraproject.org> - 2.7-11
+- Re-add omitted %%{_includedir}
+
+* Thu Oct 14 2010 Michel Salim <salimma@fedoraproject.org> - 2.7-10
+- Add correct C include directory at compile time (# 641500)
+- Upstream patch so -g flag is not passed to assembler (# 605266)
+
+* Wed Sep 29 2010 jkeating - 2.7-9.1
+- Rebuilt for gcc bug 634757
+
+* Mon Sep 20 2010 Michel Salim <salimma@fedoraproject.org> - 2.7-9
+- Dynamically determine C++ include path at compile time (# 630474)
+- Remove unneeded BuildRoot field and clean section
+
+* Wed Sep 15 2010 Dennis Gilmore <dennis@ausil.us> - 2.7-8
+- disable ocaml support on sparc64
+
+* Wed Aug 11 2010 David Malcolm <dmalcolm@redhat.com> - 2.7-7
+- recompiling .py files against Python 2.7 (rhbz#623332)
+
+* Sat Jul 17 2010 Dan Horák <dan[at]danny.cz> - 2.7-6
+- conditionalize ocaml support
+
 * Mon Jun  7 2010 Michel Salim <salimma@fedoraproject.org> - 2.7-5
 - Make the new noarch -doc obsoletes older (arched) subpackages
 
