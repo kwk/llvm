@@ -12,7 +12,7 @@
 
 Name:           llvm
 Version:        2.7
-Release:        10%{?dist}
+Release:        11%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -386,6 +386,9 @@ find examples -name 'Makefile' | xargs -0r rm -f
 
 
 %changelog
+* Fri Oct 15 2010 Michel Salim <salimma@fedoraproject.org> - 2.7-11
+- Re-add omitted %%{_includedir}
+
 * Thu Oct 14 2010 Michel Salim <salimma@fedoraproject.org> - 2.7-10
 - Add correct C include directory at compile time (# 641500)
 - Upstream patch so -g flag is not passed to assembler (# 605266)
