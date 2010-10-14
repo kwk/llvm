@@ -216,7 +216,7 @@ popd
   --enable-debug-runtime \
   --enable-jit \
   --enable-shared \
-  --with-c-include-dirs=$(echo /usr/lib/gcc/*/*/include) \
+  --with-c-include-dirs=/usr/include:$(echo /usr/lib/gcc/*/*/include) \
   --with-cxx-include-root=$(echo /usr/include/c++/*) \
   --with-cxx-include-arch=%{_arch}-%{_vendor}-%{_os}
 
