@@ -216,8 +216,8 @@ popd
   --enable-debug-runtime \
   --enable-jit \
   --enable-shared \
-  --with-c-include-dirs=/usr/include:$(echo /usr/lib/gcc/*/*/include) \
-  --with-cxx-include-root=$(echo /usr/include/c++/*) \
+  --with-c-include-dirs=%{_includedir}:$(echo %{_prefix}/lib/gcc/*/*/include) \
+  --with-cxx-include-root=$(echo %{_includedir}/c++/*) \
   --with-cxx-include-arch=%{_arch}-%{_vendor}-%{_os}
 
 # FIXME file this
