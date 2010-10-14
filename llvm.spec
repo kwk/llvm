@@ -12,7 +12,7 @@
 
 Name:           llvm
 Version:        2.7
-Release:        9%{?dist}.1
+Release:        10%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -22,6 +22,7 @@ Source0:        http://llvm.org/releases/%{version}/llvm-%{version}.tgz
 Source1:        http://llvm.org/releases/%{version}/clang-%{version}.tgz
 # Data files should be installed with timestamps preserved
 Patch0:         llvm-2.6-timestamp.patch
+Patch1:         clang-2.7-nodebug.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -191,6 +192,9 @@ HTML documentation for LLVM's OCaml binding.
 mv clang-%{version} tools/clang
 
 %patch0 -p1 -b .timestamp
+pushd tools/clang
+%patch1 -p2 -b .nodebug
+popd
 
 # Encoding fix
 (cd tools/clang/docs && \
@@ -212,6 +216,7 @@ mv clang-%{version} tools/clang
   --enable-debug-runtime \
   --enable-jit \
   --enable-shared \
+  --with-c-include-dirs=$(echo /usr/lib/gcc/*/*/include) \
   --with-cxx-include-root=$(echo /usr/include/c++/*) \
   --with-cxx-include-arch=%{_arch}-%{_vendor}-%{_os}
 
@@ -381,6 +386,10 @@ find examples -name 'Makefile' | xargs -0r rm -f
 
 
 %changelog
+* Thu Oct 14 2010 Michel Salim <salimma@fedoraproject.org> - 2.7-10
+- Add correct C include directory at compile time (# 641500)
+- Upstream patch so -g flag is not passed to assembler (# 605266)
+
 * Wed Sep 29 2010 jkeating - 2.7-9.1
 - Rebuilt for gcc bug 634757
 
