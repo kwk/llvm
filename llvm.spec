@@ -12,7 +12,7 @@
 
 Name:           llvm
 Version:        2.8
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -85,6 +85,8 @@ Documentation for the LLVM compiler infrastructure.
 Summary:        A C language family front-end for LLVM
 License:        NCSA
 Group:          Development/Languages
+# clang requires gcc; clang++ gcc-c++
+Requires:	gcc-c++
 
 %description -n clang
 clang: noun
@@ -220,8 +222,9 @@ popd
   --enable-debug-runtime \
   --enable-jit \
   --enable-shared \
-  --with-c-include-dirs=%{_includedir}:$(echo %{_prefix}/lib/gcc/*/*/include) \
-  --with-cxx-include-root=$(echo %{_includedir}/c++/*) \
+  --with-c-include-dirs=%{_includedir}:$(find %{_prefix}/lib/gcc/*/* \
+      -maxdepth 0 -type d)/include \
+  --with-cxx-include-root=$(find %{_includedir}/c++/* -maxdepth 0 -type d) \
   --with-cxx-include-arch=%{_arch}-%{_vendor}-%{_os}
 
 # FIXME file this
@@ -391,6 +394,9 @@ find examples -name 'Makefile' | xargs -0r rm -f
 
 
 %changelog
+* Sat Nov 27 2010 Michel Salim <salimma@fedoraproject.org> - 2.8-5
+- clang now requires gcc-c++ for linking and headers (bug #654560)
+
 * Fri Nov 12 2010 Michel Salim <salimma@fedoraproject.org> - 2.8-4
 - Backport support for C++0x (# 648990)
 
