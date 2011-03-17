@@ -12,7 +12,7 @@
 
 Name:           llvm
 Version:        2.8
-Release:        8%{?dist}
+Release:        9%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -86,7 +86,7 @@ Summary:        A C language family front-end for LLVM
 License:        NCSA
 Group:          Development/Languages
 # clang requires gcc; clang++ gcc-c++
-Requires:	gcc-c++
+Requires:       gcc-c++
 
 %description -n clang
 clang: noun
@@ -395,6 +395,9 @@ find examples -name 'Makefile' | xargs -0r rm -f
 
 
 %changelog
+* Thu Mar 17 2011 Michel Salim <salimma@fedoraproject.org> - 2.8-9
+- clang++: fix platform-specific include dirs (# 680644)
+
 * Thu Mar 17 2011 Michel Salim <salimma@fedoraproject.org> - 2.8-8
 - clang++: also search for platform-specific include files (# 680644)
 
