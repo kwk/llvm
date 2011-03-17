@@ -281,12 +281,6 @@ mv moredocs/html/doxygen apidoc
 mv tools/clang/docs/doxygen/html clang-apidoc
 %endif
 
-# and separate the apidoc
-%if 0%{?_with_doxygen}
-mv moredocs/html/doxygen apidoc
-mv tools/clang/docs/doxygen/html clang-apidoc
-%endif
-
 # And prepare Clang documentation
 #
 mkdir clang-docs
