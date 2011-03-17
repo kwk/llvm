@@ -12,7 +12,7 @@
 
 Name:           llvm
 Version:        2.8
-Release:        9%{?dist}
+Release:        10%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -317,7 +317,7 @@ find examples -name 'Makefile' | xargs -0r rm -f
 
 %files
 %defattr(-,root,root,-)
-%doc CREDITS.TXT LICENSE.TXT README.txt llvm-testlog.txt
+%doc CREDITS.TXT LICENSE.TXT README.txt
 %{_bindir}/bugpoint
 %{_bindir}/llc
 %{_bindir}/lli
@@ -340,7 +340,7 @@ find examples -name 'Makefile' | xargs -0r rm -f
 
 %files -n clang
 %defattr(-,root,root,-)
-%doc clang-docs/* clang-testlog.txt
+%doc clang-docs/*
 %{_bindir}/clang*
 %{_bindir}/c-index-test
 %{_bindir}/tblgen
@@ -395,6 +395,9 @@ find examples -name 'Makefile' | xargs -0r rm -f
 
 
 %changelog
+* Thu Mar 17 2011 Michel Salim <salimma@fedoraproject.org> - 2.8-10
+- Don't include test logs; breaks multilib (# 666195)
+
 * Thu Mar 17 2011 Michel Salim <salimma@fedoraproject.org> - 2.8-9
 - clang++: fix platform-specific include dirs (# 680644)
 
