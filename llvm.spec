@@ -12,7 +12,7 @@
 
 Name:           llvm
 Version:        2.8
-Release:        10%{?dist}
+Release:        11%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -26,6 +26,7 @@ Patch0:         llvm-2.6-timestamp.patch
 # http://llvm.org/bugs/show_bug.cgi?id=8423
 Patch1:         llvm-2.8-alignOf.patch
 Patch2:         clang-2.8-alignOf.patch
+Patch3:         llvm-2.8-disable-avx.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -211,6 +212,7 @@ mv clang-%{version} tools/clang
 pushd tools/clang
 %patch2 -p0 -b .alignOf
 popd
+%patch3 -p1 -b .avx
 
 # Encoding fix
 #(cd tools/clang/docs && \
@@ -412,6 +414,9 @@ find examples -name 'Makefile' | xargs -0r rm -f
 
 
 %changelog
+* Tue Apr 26 2011 Adam Jackson <ajax@redhat.com> 2.8-11
+- llvm-2.8-disable-avx.patch: Disable AVX code generation. (#699896)
+
 * Thu Mar 17 2011 Michel Salim <salimma@fedoraproject.org> - 2.8-10
 - Don't include test logs; breaks multilib (# 666195)
 - Split shared libraries into separate subpackage
