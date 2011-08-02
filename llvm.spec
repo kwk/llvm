@@ -34,10 +34,6 @@ Patch2:         clang-2.8-alignOf.patch
 # http://llvm.org/bugs/show_bug.cgi?id=9508
 Patch3:         llvm-2.8-disable-avx.patch
 
-# clang link failure if system GCC version is unknown
-# http://llvm.org/bugs/show_bug.cgi?id=8897
-# Patch4:         clang-2.9-add_gcc_vers.patch
-
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -229,8 +225,10 @@ mv clang-%{version} tools/clang
 # clang patches
 pushd tools/clang
 %patch2 -p0 -b .alignOf
-#patch3 -p1 -b .add_gcc_ver
 popd
+
+# Also disable AVX tests
+rm test/CodeGen/X86/avx*.ll
 
 # Encoding fix
 #(cd tools/clang/docs && \
