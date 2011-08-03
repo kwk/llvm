@@ -12,7 +12,7 @@
 
 Name:           llvm
 Version:        2.8
-Release:        13%{?dist}
+Release:        14%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -69,6 +69,7 @@ functionality.
 Summary:        Libraries and header files for LLVM
 Group:          Development/Languages
 Requires:       %{name} = %{version}-%{release}
+Requires:       libffi-devel
 Requires:       libstdc++-devel >= 3.4
 Provides:       llvm-static = %{version}-%{release}
 
@@ -474,6 +475,9 @@ exit 0
 
 
 %changelog
+* Sat Nov 12 2011 Michel Salim <salimma@fedoraproject.org> - 2.8-14
+- Add runtime dependency of -devel on libffi-devel
+
 * Tue Oct 11 2011 Dan Horák <dan[at]danny.cz> - 2.8-13
 - don't fail the build on failing tests on s390(x)
 
