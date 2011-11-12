@@ -1,0 +1,67 @@
+diff -up llvm-2.8/lib/Target/X86/X86Subtarget.cpp.jx llvm-2.8/lib/Target/X86/X86Subtarget.cpp
+--- llvm-2.8/lib/Target/X86/X86Subtarget.cpp.jx	2010-08-21 13:21:11.000000000 -0400
++++ llvm-2.8/lib/Target/X86/X86Subtarget.cpp	2011-04-26 16:02:52.238855091 -0400
+@@ -262,7 +262,7 @@ void X86Subtarget::AutoDetectSubtargetFe
+ 
+   HasCLMUL = IsIntel && ((ECX >> 1) & 0x1);
+   HasFMA3  = IsIntel && ((ECX >> 12) & 0x1);
+-  HasAVX   = ((ECX >> 28) & 0x1);
++  HasAVX   = 0;
+   HasAES   = IsIntel && ((ECX >> 25) & 0x1);
+ 
+   if (IsIntel || IsAMD) {
+diff -up llvm-2.8/lib/Target/X86/X86Subtarget.h.jx llvm-2.8/lib/Target/X86/X86Subtarget.h
+--- llvm-2.8/lib/Target/X86/X86Subtarget.h.jx	2010-09-02 19:03:46.000000000 -0400
++++ llvm-2.8/lib/Target/X86/X86Subtarget.h	2011-04-26 16:01:23.336855019 -0400
+@@ -150,7 +150,7 @@ public:
+   bool hasSSE4A() const { return HasSSE4A; }
+   bool has3DNow() const { return X863DNowLevel >= ThreeDNow; }
+   bool has3DNowA() const { return X863DNowLevel >= ThreeDNowA; }
+-  bool hasAVX() const { return HasAVX; }
++  bool hasAVX() const { return false; }
+   bool hasAES() const { return HasAES; }
+   bool hasCLMUL() const { return HasCLMUL; }
+   bool hasFMA3() const { return HasFMA3; }
+diff -up llvm-2.8/lib/Target/X86/X86.td.jx llvm-2.8/lib/Target/X86/X86.td
+--- llvm-2.8/lib/Target/X86/X86.td.jx	2010-08-11 20:55:32.000000000 -0400
++++ llvm-2.8/lib/Target/X86/X86.td	2011-04-26 16:02:21.127854790 -0400
+@@ -116,7 +116,8 @@ def : Proc<"westmere",         [FeatureS
+                                 FeatureFastUAMem, FeatureAES]>;
+ // Sandy Bridge does not have FMA
+ // FIXME: Wikipedia says it does... it should have AES as well.
+-def : Proc<"sandybridge",     [FeatureSSE42,  FeatureAVX,   Feature64Bit]>;
++// FEDORA: AVX is broken in 2.8
++def : Proc<"sandybridge",     [FeatureSSE42,  Feature64Bit]>;
+ 
+ def : Proc<"k6",              [FeatureMMX]>;
+ def : Proc<"k6-2",            [FeatureMMX,    Feature3DNow]>;
+diff -up llvm-2.8/tools/clang/lib/Basic/Targets.cpp.jx llvm-2.8/tools/clang/lib/Basic/Targets.cpp
+--- llvm-2.8/tools/clang/lib/Basic/Targets.cpp.jx	2010-08-31 12:44:54.000000000 -0400
++++ llvm-2.8/tools/clang/lib/Basic/Targets.cpp	2011-04-26 16:03:40.768855658 -0400
+@@ -1048,8 +1048,6 @@ bool X86TargetInfo::setFeatureEnabled(ll
+       Features["3dnow"] = Features["3dnowa"] = true;
+     else if (Name == "aes")
+       Features["aes"] = true;
+-    else if (Name == "avx")
+-      Features["avx"] = true;
+   } else {
+     if (Name == "mmx")
+       Features["mmx"] = Features["sse"] = Features["sse2"] = Features["sse3"] =
+@@ -1101,7 +1099,6 @@ void X86TargetInfo::HandleTargetFeatures
+     // FIXME: Not sure yet how to treat AVX in regard to SSE levels.
+     // For now let it be enabled together with other SSE levels.
+     if (Features[i].substr(1) == "avx") {
+-      HasAVX = true;
+       continue;
+     }
+ 
+@@ -1146,9 +1143,6 @@ void X86TargetInfo::getTargetDefines(con
+   if (HasAES)
+     Builder.defineMacro("__AES__");
+ 
+-  if (HasAVX)
+-    Builder.defineMacro("__AVX__");
+-
+   // Target properties.
+   Builder.defineMacro("__LITTLE_ENDIAN__");
+ 
