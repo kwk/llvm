@@ -3,6 +3,10 @@
 # --with doxygen
 #   The doxygen docs are HUGE, so they are not built by default.
 
+# prior to 3.0, clang header paths are hard-coded and need
+# adjustment whenever there's a new GCC version
+%global gcc_version 4.6.2
+
 %ifarch s390 s390x sparc64
   # No ocaml on these arches
   %bcond_with ocaml
@@ -15,7 +19,7 @@
 
 Name:           llvm
 Version:        2.9
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -105,7 +109,7 @@ License:        NCSA
 Group:          Development/Languages
 Requires:       llvm = %{version}-%{release}
 # clang requires gcc; clang++ gcc-c++
-Requires:       gcc-c++
+Requires:       gcc-c++ = %{gcc_version}
 
 %description -n clang
 clang: noun
@@ -472,6 +476,10 @@ exit 0
 
 
 %changelog
+* Thu Feb  2 2012 Michel Alexandre Salim <michel@hermione.localdomain> - 2.9-6
+- Rebuild for GCC 4.6.2
+- Pin clang's dependency on gcc-c++ to the version used for building
+
 * Tue Oct 11 2011 Dan Horák <dan[at]danny.cz> - 2.9-5
 - don't fail the build on failing tests on ppc(64) and s390(x)
 
