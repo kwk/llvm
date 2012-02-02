@@ -3,6 +3,10 @@
 # --with doxygen
 #   The doxygen docs are HUGE, so they are not built by default.
 
+# prior to 3.0, clang header paths are hard-coded and need
+# adjustment whenever there's a new GCC version
+%global gcc_version 4.6.3
+
 %ifarch s390 s390x sparc64
   # No ocaml on these arches
   %bcond_with ocaml
@@ -12,7 +16,7 @@
 
 Name:           llvm
 Version:        2.8
-Release:        14%{?dist}
+Release:        15%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -108,7 +112,7 @@ License:        NCSA
 Group:          Development/Languages
 Requires:       llvm = %{version}-%{release}
 # clang requires gcc; clang++ gcc-c++
-Requires:       gcc-c++
+Requires:       gcc-c++ = %{gcc_version}
 
 %description -n clang
 clang: noun
@@ -475,6 +479,9 @@ exit 0
 
 
 %changelog
+* Sun Mar 11 2012 Michel Salim <salimma@fedoraproject.org> - 2.8-15
+- Pin clang's dependency on gcc-c++ to the version used for building
+
 * Sat Nov 12 2011 Michel Salim <salimma@fedoraproject.org> - 2.8-14
 - Add runtime dependency of -devel on libffi-devel
 
