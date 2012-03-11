@@ -19,7 +19,7 @@
 
 Name:           llvm
 Version:        2.9
-Release:        6%{?dist}
+Release:        7%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -476,6 +476,9 @@ exit 0
 
 
 %changelog
+* Sun Mar 11 2012 Michel Salim <salimma@fedoraproject.org> - 2.9-7
+- Rebuild for GCC 4.6.3
+
 * Thu Feb  2 2012 Michel Alexandre Salim <michel@hermione.localdomain> - 2.9-6
 - Rebuild for GCC 4.6.2
 - Pin clang's dependency on gcc-c++ to the version used for building
