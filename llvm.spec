@@ -5,7 +5,7 @@
 
 # prior to 3.0, clang header paths are hard-coded and need
 # adjustment whenever there's a new GCC version
-%global gcc_version 4.6.2
+%global gcc_version 4.6.3
 
 %ifarch s390 s390x sparc64
   # No ocaml on these arches
@@ -19,7 +19,7 @@
 
 Name:           llvm
 Version:        2.9
-Release:        7%{?dist}
+Release:        8%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -476,6 +476,9 @@ exit 0
 
 
 %changelog
+* Sun Mar 11 2012 Michel Salim <salimma@fedoraproject.org> - 2.9-8
+- Update list of supported versions
+
 * Sun Mar 11 2012 Michel Salim <salimma@fedoraproject.org> - 2.9-7
 - Rebuild for GCC 4.6.3
 
