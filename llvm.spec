@@ -19,7 +19,7 @@
 
 Name:           llvm
 Version:        2.9
-Release:        8%{?dist}
+Release:        9%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -476,6 +476,9 @@ exit 0
 
 
 %changelog
+* Fri Mar 23 2012 Michel Salim <salimma@fedoraproject.org> - 2.9-9
+- Actually rebuild against GCC 4.6.3 (BR override expired when building -8)
+
 * Sun Mar 11 2012 Michel Salim <salimma@fedoraproject.org> - 2.9-8
 - Update list of supported versions
 
