@@ -1,0 +1,286 @@
+From 96fdb1843b17f4acad796229b53793da328ea476 Mon Sep 17 00:00:00 2001
+From: Michel Alexandre Salim <salimma@fedoraproject.org>
+Date: Mon, 26 Mar 2012 15:34:11 +0700
+Subject: [PATCH] Implement basic __is_trivial type-trait support, enough to
+ close PR9472. This introduces a few APIs on the AST to
+ bundle up the standard-based logic so that programmatic
+ clients have access to exactly the same behavior.
+
+There is only one serious FIXME here: checking for non-trivial move
+constructors and move assignment operators. Those bits need to be added
+to the declaration and accessors provided.
+
+This implementation should be enough for the uses of __is_trivial in
+libstdc++ 4.6's C++98 library implementation.
+
+Ideas for more thorough test cases or any edge cases missing would be
+appreciated. =D
+
+git-svn-id: https://llvm.org/svn/llvm-project/cfe/trunk@130057 91177308-0d34-0410-b5e6-96231b3b80d8
+(cherry picked from commit b7e9589bce9852b4db9575f55ac9137572147eb5)
+
+Conflicts:
+
+	include/clang/Basic/TypeTraits.h
+	lib/Parse/ParseExpr.cpp
+---
+ include/clang/AST/DeclCXX.h        |    4 ++++
+ include/clang/AST/Type.h           |    4 ++++
+ include/clang/Basic/TokenKinds.def |    1 +
+ include/clang/Basic/TypeTraits.h   |    1 +
+ lib/AST/DeclCXX.cpp                |   17 +++++++++++++++++
+ lib/AST/StmtPrinter.cpp            |    1 +
+ lib/AST/Type.cpp                   |   27 +++++++++++++++++++++++++++
+ lib/Lex/PPMacroExpansion.cpp       |    1 +
+ lib/Parse/ParseExpr.cpp            |    2 ++
+ lib/Parse/ParseExprCXX.cpp         |    1 +
+ lib/Parse/ParseTentative.cpp       |    1 +
+ lib/Sema/SemaExprCXX.cpp           |    1 +
+ test/SemaCXX/type-traits.cpp       |   34 ++++++++++++++++++++++++++++++++++
+ 13 files changed, 95 insertions(+)
+
+diff --git a/include/clang/AST/DeclCXX.h b/include/clang/AST/DeclCXX.h
+index 0473ae0..b36b35b 100644
+--- a/include/clang/AST/DeclCXX.h
++++ b/include/clang/AST/DeclCXX.h
+@@ -743,6 +743,10 @@ public:
+   // (C++ [class.dtor]p3)
+   bool hasTrivialDestructor() const { return data().HasTrivialDestructor; }
+ 
++  // isTriviallyCopyable - Whether this class is considered trivially copyable
++  // (C++0x [class]p5).
++  bool isTriviallyCopyable() const;
++
+   /// \brief If this record is an instantiation of a member class,
+   /// retrieves the member class from which it was instantiated.
+   ///
+diff --git a/include/clang/AST/Type.h b/include/clang/AST/Type.h
+index c071056..8270530 100644
+--- a/include/clang/AST/Type.h
++++ b/include/clang/AST/Type.h
+@@ -1163,6 +1163,10 @@ public:
+   /// (C++0x [basic.types]p10)
+   bool isLiteralType() const;
+ 
++  /// isTrivialType - Return true if this is a literal type
++  /// (C++0x [basic.types]p9)
++  bool isTrivialType() const;
++
+   /// Helper methods to distinguish type categories. All type predicates
+   /// operate on the canonical type, ignoring typedefs and qualifiers.
+ 
+diff --git a/include/clang/Basic/TokenKinds.def b/include/clang/Basic/TokenKinds.def
+index 96a817b..bc1a97e 100644
+--- a/include/clang/Basic/TokenKinds.def
++++ b/include/clang/Basic/TokenKinds.def
+@@ -331,6 +331,7 @@ KEYWORD(__is_empty                  , KEYCXX)
+ KEYWORD(__is_enum                   , KEYCXX)
+ KEYWORD(__is_pod                    , KEYCXX)
+ KEYWORD(__is_polymorphic            , KEYCXX)
++KEYWORD(__is_trivial                , KEYCXX)
+ KEYWORD(__is_union                  , KEYCXX)
+ // Tentative name - there's no implementation of std::is_literal_type yet.
+ KEYWORD(__is_literal                , KEYCXX)
+diff --git a/include/clang/Basic/TypeTraits.h b/include/clang/Basic/TypeTraits.h
+index 00c6e9e..d39ddf9 100644
+--- a/include/clang/Basic/TypeTraits.h
++++ b/include/clang/Basic/TypeTraits.h
+@@ -32,6 +32,7 @@ namespace clang {
+     UTT_IsEnum,
+     UTT_IsPOD,
+     UTT_IsPolymorphic,
++    UTT_IsTrivial,
+     UTT_IsUnion,
+     UTT_IsLiteral
+   };
+diff --git a/lib/AST/DeclCXX.cpp b/lib/AST/DeclCXX.cpp
+index b6cba0a..6c80d00 100644
+--- a/lib/AST/DeclCXX.cpp
++++ b/lib/AST/DeclCXX.cpp
+@@ -218,6 +218,23 @@ bool CXXRecordDecl::hasConstCopyConstructor(const ASTContext &Context) const {
+   return getCopyConstructor(Context, Qualifiers::Const) != 0;
+ }
+ 
++bool CXXRecordDecl::isTriviallyCopyable() const {
++  // C++0x [class]p5:
++  //   A trivially copyable class is a class that:
++  //   -- has no non-trivial copy constructors,
++  if (!hasTrivialCopyConstructor()) return false;
++  //   -- has no non-trivial move constructors,
++  // FIXME: C++0x: Track and check trivial move constructors.
++  //   -- has no non-trivial copy assignment operators,
++  if (!hasTrivialCopyAssignment()) return false;
++  //   -- has no non-trivial move assignment operators, and
++  // FIXME: C++0x: Track and check trivial move assignment operators.
++  //   -- has a trivial destructor.
++  if (!hasTrivialDestructor()) return false;
++
++  return true;
++}
++
+ /// \brief Perform a simplistic form of overload resolution that only considers
+ /// cv-qualifiers on a single parameter, and return the best overload candidate
+ /// (if there is one).
+diff --git a/lib/AST/StmtPrinter.cpp b/lib/AST/StmtPrinter.cpp
+index 1cdd220..2f35b62 100644
+--- a/lib/AST/StmtPrinter.cpp
++++ b/lib/AST/StmtPrinter.cpp
+@@ -1227,6 +1227,7 @@ static const char *getTypeTraitName(UnaryTypeTrait UTT) {
+   case UTT_IsEnum:                return "__is_enum";
+   case UTT_IsPOD:                 return "__is_pod";
+   case UTT_IsPolymorphic:         return "__is_polymorphic";
++  case UTT_IsTrivial:             return "__is_trivial";
+   case UTT_IsUnion:               return "__is_union";
+   }
+   return "";
+diff --git a/lib/AST/Type.cpp b/lib/AST/Type.cpp
+index cde865f..07b90e5 100644
+--- a/lib/AST/Type.cpp
++++ b/lib/AST/Type.cpp
+@@ -891,6 +891,33 @@ bool Type::isLiteralType() const {
+   }
+ }
+ 
++bool Type::isTrivialType() const {
++  if (isIncompleteType())
++    return false;
++
++  // C++0x [basic.types]p9:
++  //   Scalar types, trivial class types, arrays of such types, and
++  //   cv-qualified versions of these types are collectively called trivial
++  //   types.
++  const Type *BaseTy = getBaseElementTypeUnsafe();
++  assert(BaseTy && "NULL element type");
++  if (BaseTy->isScalarType()) return true;
++  if (const RecordType *RT = BaseTy->getAs<RecordType>()) {
++    const CXXRecordDecl *ClassDecl = cast<CXXRecordDecl>(RT->getDecl());
++
++    // C++0x [class]p5:
++    //   A trivial class is a class that has a trivial default constructor
++    if (!ClassDecl->hasTrivialConstructor()) return false;
++    //   and is trivially copyable.
++    if (!ClassDecl->isTriviallyCopyable()) return false;
++
++    return true;
++  }
++
++  // No other types can match.
++  return false;
++}
++
+ bool Type::isPromotableIntegerType() const {
+   if (const BuiltinType *BT = getAs<BuiltinType>())
+     switch (BT->getKind()) {
+diff --git a/lib/Lex/PPMacroExpansion.cpp b/lib/Lex/PPMacroExpansion.cpp
+index 10abfb4..5ac8661 100644
+--- a/lib/Lex/PPMacroExpansion.cpp
++++ b/lib/Lex/PPMacroExpansion.cpp
+@@ -584,6 +584,7 @@ static bool HasFeature(const Preprocessor &PP, const IdentifierInfo *II) {
+            .Case("is_enum", LangOpts.CPlusPlus)
+            .Case("is_pod", LangOpts.CPlusPlus)
+            .Case("is_polymorphic", LangOpts.CPlusPlus)
++           .Case("is_trivial", LangOpts.CPlusPlus)
+            .Case("is_union", LangOpts.CPlusPlus)
+            .Case("is_literal", LangOpts.CPlusPlus)
+            .Case("tls", PP.getTargetInfo().isTLSSupported())
+diff --git a/lib/Parse/ParseExpr.cpp b/lib/Parse/ParseExpr.cpp
+index 03b3417..d663da4 100644
+--- a/lib/Parse/ParseExpr.cpp
++++ b/lib/Parse/ParseExpr.cpp
+@@ -535,6 +535,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
+ ///                   '__is_enum'
+ ///                   '__is_pod'
+ ///                   '__is_polymorphic'
++///                   '__is_trivial'
+ ///                   '__is_union'
+ ///
+ ///       binary-type-trait:
+@@ -981,6 +982,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
+   case tok::kw___is_pod: // [GNU] unary-type-trait
+   case tok::kw___is_class:
+   case tok::kw___is_enum:
++  case tok::kw___is_trivial:
+   case tok::kw___is_union:
+   case tok::kw___is_empty:
+   case tok::kw___is_polymorphic:
+diff --git a/lib/Parse/ParseExprCXX.cpp b/lib/Parse/ParseExprCXX.cpp
+index d09f20e..d94cac6 100644
+--- a/lib/Parse/ParseExprCXX.cpp
++++ b/lib/Parse/ParseExprCXX.cpp
+@@ -1825,6 +1825,7 @@ static UnaryTypeTrait UnaryTypeTraitFromTokKind(tok::TokenKind kind) {
+   case tok::kw___is_enum:                 return UTT_IsEnum;
+   case tok::kw___is_pod:                  return UTT_IsPOD;
+   case tok::kw___is_polymorphic:          return UTT_IsPolymorphic;
++  case tok::kw___is_trivial:              return UTT_IsTrivial;
+   case tok::kw___is_union:                return UTT_IsUnion;
+   case tok::kw___is_literal:              return UTT_IsLiteral;
+   }
+diff --git a/lib/Parse/ParseTentative.cpp b/lib/Parse/ParseTentative.cpp
+index 1099327..93122b3 100644
+--- a/lib/Parse/ParseTentative.cpp
++++ b/lib/Parse/ParseTentative.cpp
+@@ -660,6 +660,7 @@ Parser::isExpressionOrTypeSpecifierSimple(tok::TokenKind Kind) {
+   case tok::kw___is_enum:
+   case tok::kw___is_pod:
+   case tok::kw___is_polymorphic:
++  case tok::kw___is_trivial:
+   case tok::kw___is_union:
+   case tok::kw___is_literal:
+   case tok::kw___uuidof:
+diff --git a/lib/Sema/SemaExprCXX.cpp b/lib/Sema/SemaExprCXX.cpp
+index 884011e..e8220ff 100644
+--- a/lib/Sema/SemaExprCXX.cpp
++++ b/lib/Sema/SemaExprCXX.cpp
+@@ -2310,6 +2310,7 @@ static bool EvaluateUnaryTypeTrait(Sema &Self, UnaryTypeTrait UTT, QualType T,
+   default: assert(false && "Unknown type trait or not implemented");
+   case UTT_IsPOD: return T->isPODType();
+   case UTT_IsLiteral: return T->isLiteralType();
++  case UTT_IsTrivial: return T->isTrivialType();
+   case UTT_IsClass: // Fallthrough
+   case UTT_IsUnion:
+     if (const RecordType *Record = T->getAs<RecordType>()) {
+diff --git a/test/SemaCXX/type-traits.cpp b/test/SemaCXX/type-traits.cpp
+index ff9a6bf..cbb3549 100644
+--- a/test/SemaCXX/type-traits.cpp
++++ b/test/SemaCXX/type-traits.cpp
+@@ -548,3 +548,37 @@ void is_convertible_to() {
+   int t22[F(__is_convertible_to(PrivateCopy, PrivateCopy))];
+   int t23[T(__is_convertible_to(X0<int>, X0<float>))];
+ }
++
++void is_trivial()
++{
++  int t01[T(__is_trivial(int))];
++  int t02[T(__is_trivial(Enum))];
++  int t03[T(__is_trivial(POD))];
++  int t04[T(__is_trivial(Int))];
++  int t05[T(__is_trivial(IntAr))];
++  int t06[T(__is_trivial(Statics))];
++  int t07[T(__is_trivial(Empty))];
++  int t08[T(__is_trivial(EmptyUnion))];
++  int t09[T(__is_trivial(Union))];
++  int t10[T(__is_trivial(HasFunc))];
++  int t11[T(__is_trivial(HasOp))];
++  int t12[T(__is_trivial(HasConv))];
++  int t13[T(__is_trivial(HasAssign))];
++  int t15[T(__is_trivial(HasAnonymousUnion))];
++  int t16[T(__is_trivial(Derives))];
++  int t17[T(__is_trivial(DerivesEmpty))];
++  int t18[T(__is_trivial(NonPODAr))];
++  int t19[T(__is_trivial(HasPriv))];
++  int t20[T(__is_trivial(HasProt))];
++
++  int f01[F(__is_trivial(IntArNB))];
++  int f02[F(__is_trivial(HasCons))];
++  int f03[F(__is_trivial(HasCopyAssign))];
++  int f04[F(__is_trivial(HasDest))];
++  int f05[F(__is_trivial(HasRef))];
++  int f06[F(__is_trivial(HasNonPOD))];
++  int f07[F(__is_trivial(HasVirt))];
++  int f08[F(__is_trivial(void))];
++  int f09[F(__is_trivial(cvoid))];
++  int f10[F(__is_trivial(NonPODArNB))];
++}
+-- 
+1.7.9.3
+

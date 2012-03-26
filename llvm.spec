@@ -19,7 +19,7 @@
 
 Name:           llvm
 Version:        2.9
-Release:        9%{?dist}
+Release:        10%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -39,6 +39,11 @@ Patch1:         clang-2.9-add_gcc_vers.patch
 # Operator.h incompatibility with GCC 4.6 in C++0x mode
 # http://llvm.org/bugs/show_bug.cgi?id=9869
 Patch2:         llvm-2.9-PR9869_operator_destructor.patch
+# Backports from clang 3.0 needed for libstdc++ 4.6.x
+# __is_trivial implementation 
+Patch3:         clang-2.9-PR9472_is_trivial.patch
+# __decltype
+Patch4:         clang-2.9-PR9585_decltype.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -226,6 +231,8 @@ mv clang-%{version}%{?prerel} tools/clang
 # clang patches
 pushd tools/clang
 %patch1 -p1 -b .add_gcc_ver
+%patch3 -p1 -b .is_trivial
+%patch4 -p1 -b .decltype
 popd
 
 # Encoding fix
@@ -476,6 +483,9 @@ exit 0
 
 
 %changelog
+* Mon Mar 26 2012 Michel Salim <salimma@fedoraproject.org> - 2.9-10
+- clang++: Backport C++0x patches from the 3.0 branch (#729308)
+
 * Fri Mar 23 2012 Michel Salim <salimma@fedoraproject.org> - 2.9-9
 - Actually rebuild against GCC 4.6.3 (BR override expired when building -8)
 
