@@ -36,7 +36,7 @@ ExcludeArch: s390 s390x ppc ppc64
 
 Name:           llvm
 Version:        3.0
-Release:        11%{?dist}
+Release:        12%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -382,8 +382,10 @@ find examples -name 'Makefile' | xargs -0r rm -f
 # the Koji build server does not seem to have enough RAM
 # for the default 16 threads
 
+# Disabling test suit on ARM for F-17 release as it causes weird build issues
+%ifnarch %{arm}
 # LLVM test suite failing on ARM, PPC64 and s390(x)
-make check LIT_ARGS="-v -j4" \
+make check LIT_ARGS="-v" \
 %ifarch %{arm} ppc64 s390 s390x
      | tee llvm-testlog-%{_arch}.txt
 %else
@@ -397,11 +399,7 @@ make check LIT_ARGS="-v -j4" \
 # capture logs
 make -C tools/clang/test TESTARGS="-v -j4" \
      | tee clang-testlog-%{_arch}.txt
-#ifarch ppc ppc64 s390 s390x
-# || :
-#else
-# %{nil}
-#endif
+%endif
 %endif
 
 
@@ -436,7 +434,7 @@ exit 0
 %files
 %defattr(-,root,root,-)
 %doc CREDITS.TXT LICENSE.TXT README.txt
-%ifarch %{arm} ppc64 s390 s390x
+%ifarch ppc64 s390 s390x
 %doc llvm-testlog-%{_arch}.txt
 %endif
 %{_bindir}/bugpoint
@@ -470,7 +468,10 @@ exit 0
 %if %{with clang}
 %files -n clang
 %defattr(-,root,root,-)
-%doc clang-docs/* clang-testlog-%{_arch}.txt
+%doc clang-docs/* 
+%ifnarch %{arm}
+%doc clang-testlog-%{_arch}.txt
+%endif
 %{_bindir}/clang*
 %{_bindir}/c-index-test
 %{_libdir}/%{name}/libclang.so
@@ -528,6 +529,9 @@ exit 0
 %endif
 
 %changelog
+* Sat May  5 2012 Peter Robinson <pbrobinson@fedoraproject.org> - 3.0-12
+- Disabling test suit on ARM for F-17 release as it causes weird build issues
+
 * Fri Mar 30 2012 Michel Alexandre Salim <michel@hermione.localdomain> - 3.0-11
 - Replace overly-broad dependency on gcc-c++ with gcc and libstdc++-devel
 - Pin clang's dependency on libstdc++-devel to the version used for building
