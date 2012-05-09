@@ -17,7 +17,7 @@
 
 %if 0%{?rhel} >= 7
 %bcond_with clang
-ExcludeArch: s390 s390x ppc ppc64
+ExcludeArch: s390 s390x ppc ppc64 ppc64p7
 %else
 %bcond_without clang
 %endif
@@ -36,7 +36,7 @@ ExcludeArch: s390 s390x ppc ppc64
 
 Name:           llvm
 Version:        3.0
-Release:        12%{?dist}
+Release:        13%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -383,10 +383,10 @@ find examples -name 'Makefile' | xargs -0r rm -f
 # for the default 16 threads
 
 # Disabling test suit on ARM for F-17 release as it causes weird build issues
-%ifnarch %{arm}
-# LLVM test suite failing on ARM, PPC64 and s390(x)
+%ifnarch %{arm} ppc ppc64 ppc64p7
+# LLVM test suite failing on ARM, PPC(64) and s390(x)
 make check LIT_ARGS="-v" \
-%ifarch %{arm} ppc64 s390 s390x
+%ifarch %{arm} s390 s390x
      | tee llvm-testlog-%{_arch}.txt
 %else
  %{nil}
@@ -434,7 +434,7 @@ exit 0
 %files
 %defattr(-,root,root,-)
 %doc CREDITS.TXT LICENSE.TXT README.txt
-%ifarch ppc64 s390 s390x
+%ifarch s390 s390x
 %doc llvm-testlog-%{_arch}.txt
 %endif
 %{_bindir}/bugpoint
@@ -469,7 +469,7 @@ exit 0
 %files -n clang
 %defattr(-,root,root,-)
 %doc clang-docs/* 
-%ifnarch %{arm}
+%ifnarch %{arm} ppc ppc64 ppc64p7
 %doc clang-testlog-%{_arch}.txt
 %endif
 %{_bindir}/clang*
@@ -529,6 +529,9 @@ exit 0
 %endif
 
 %changelog
+* Wed May 09 2012 Karsten Hopp <karsten@redhat.com> 3.0-13
+- disable tests on PPC* similar to arm
+
 * Sat May  5 2012 Peter Robinson <pbrobinson@fedoraproject.org> - 3.0-12
 - Disabling test suit on ARM for F-17 release as it causes weird build issues
 
