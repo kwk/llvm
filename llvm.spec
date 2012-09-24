@@ -6,7 +6,7 @@
 
 # clang header paths are hard-coded at compile time
 # and need adjustment whenever there's a new GCC version
-%global gcc_version 4.7.0
+%global gcc_version 4.7.2
 
 %ifarch s390 s390x sparc64
   # No ocaml on these arches
@@ -36,7 +36,7 @@ ExcludeArch: s390 s390x ppc ppc64 ppc64p7
 
 Name:           llvm
 Version:        3.0
-Release:        13%{?dist}
+Release:        14%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -529,6 +529,9 @@ exit 0
 %endif
 
 %changelog
+* Mon Sep 24 2012 Michel Salim <salimma@fedoraproject.org> - 3.0-14
+- Rebuild for GCC 4.7.2
+
 * Wed May 09 2012 Karsten Hopp <karsten@redhat.com> 3.0-13
 - disable tests on PPC* similar to arm
 
