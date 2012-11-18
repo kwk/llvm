@@ -28,8 +28,12 @@ ExcludeArch: s390 s390x ppc ppc64
 # gold linker support
 # arch list from binutils spec
 %global gold_arches %ix86 x86_64
+%if 0%{?rhel} >= 7 || 0%{?fedora}
 %ifarch %gold_arches
 %bcond_without gold
+%else
+%bcond_with gold
+%endif
 %else
 %bcond_with gold
 %endif
