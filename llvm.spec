@@ -17,7 +17,7 @@
 
 %if 0%{?rhel} >= 7
 %bcond_with clang
-ExcludeArch: s390 s390x ppc ppc64 ppc64p7
+ExcludeArch: s390 s390x ppc ppc64
 %else
 %bcond_without clang
 %endif
@@ -36,7 +36,7 @@ ExcludeArch: s390 s390x ppc ppc64 ppc64p7
 
 Name:           llvm
 Version:        3.1
-Release:        1%{?dist}
+Release:        11%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -410,11 +410,9 @@ find examples -name 'Makefile' | xargs -0r rm -f
 # the Koji build server does not seem to have enough RAM
 # for the default 16 threads
 
-# Disabling test suit on ARM for F-17 release as it causes weird build issues
-%ifnarch %{arm} ppc ppc64 ppc64p7
-# LLVM test suite failing on ARM, PPC(64) and s390(x)
-make check LIT_ARGS="-v" \
-%ifarch %{arm} s390 s390x
+# LLVM test suite failing on ARM, PPC64 and s390(x)
+make check LIT_ARGS="-v -j4" \
+%ifarch %{arm} ppc64 s390 s390x
      | tee llvm-testlog-%{_arch}.txt
 %else
  %{nil}
@@ -427,7 +425,11 @@ make check LIT_ARGS="-v" \
 # capture logs
 make -C tools/clang/test TESTARGS="-v -j4" \
      | tee clang-testlog-%{_arch}.txt
-%endif
+#ifarch ppc ppc64 s390 s390x
+# || :
+#else
+# %{nil}
+#endif
 %endif
 
 
@@ -462,7 +464,7 @@ exit 0
 %files
 %defattr(-,root,root,-)
 %doc CREDITS.TXT LICENSE.TXT README.txt
-%ifarch s390 s390x
+%ifarch %{arm} ppc64 s390 s390x
 %doc llvm-testlog-%{_arch}.txt
 %endif
 %{_bindir}/bugpoint
@@ -496,10 +498,7 @@ exit 0
 %if %{with clang}
 %files -n clang
 %defattr(-,root,root,-)
-%doc clang-docs/* 
-%ifnarch %{arm} ppc ppc64 ppc64p7
-%doc clang-testlog-%{_arch}.txt
-%endif
+%doc clang-docs/* clang-testlog-%{_arch}.txt
 %{_bindir}/clang*
 %{_bindir}/c-index-test
 %{_libdir}/%{name}/libclang.so
