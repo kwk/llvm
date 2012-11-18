@@ -35,15 +35,15 @@ ExcludeArch: s390 s390x ppc ppc64 ppc64p7
 %endif
 
 Name:           llvm
-Version:        3.0
-Release:        14%{?dist}
+Version:        3.1
+Release:        1%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
 License:        NCSA
 URL:            http://llvm.org/
-Source0:        %{downloadurl}/llvm-%{version}%{?prerel:%{prerel}.src}.tar.gz
-Source1:        %{downloadurl}/clang-%{version}%{?prerel:%{prerel}.src}.tar.gz
+Source0:        %{downloadurl}/llvm-%{version}%{?prerel:%{prerel}}.src.tar.gz
+Source1:        %{downloadurl}/clang-%{version}%{?prerel:%{prerel}}.src.tar.gz
 # multilib fixes
 Source2:        llvm-Config-config.h
 Source3:        llvm-Config-llvm-config.h
@@ -51,11 +51,17 @@ Source3:        llvm-Config-llvm-config.h
 
 # Data files should be installed with timestamps preserved
 Patch0:         llvm-2.6-timestamp.patch
-# LLVMgold should link against LTO as a normal library
-# http://lists.cs.uiuc.edu/pipermail/llvmdev/2011-November/045433.html
-# patch is applied upstream, but has to be rewritten due to post-3.0
-# Makefile clean-ups
-Patch1:         llvm-3.0-link_llvmgold_to_lto.patch
+
+# r600 llvm and clang patches
+Patch600: 0001-r600-Add-some-intrinsic-definitions.patch
+Patch601: 0002-r600-Add-get_global_size-and-get_local_size-intrinsi.patch
+
+Patch610: 0001-Add-r600-TargetInfo.patch
+Patch611: 0002-r600-Add-some-target-builtins.patch
+Patch612: 0003-r600-Add-read_global_size-and-read_local_size-builti.patch
+
+# ocaml
+Patch700: llvm-fix-ghc.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -250,11 +256,22 @@ mv clang-%{version}%{?prerel}.src tools/clang
 
 # llvm patches
 %patch0 -p1 -b .timestamp
-%patch1 -p1 -b .link_llvmgold_to_lto
+#patch1 -p1 -b .link_llvmgold_to_lto
+
+# r600 llvm patch
+%patch600 -p1 -b .r600
+%patch601 -p1 -b .r601
 
 # clang patches
-#pushd tools/clang
-#popd
+%if %{with clang}
+pushd tools/clang
+%patch610 -p1 -b .r610
+%patch611 -p1 -b .r611
+%patch612 -p1 -b .r612
+popd
+%endif
+
+%patch700 -p0 -b .ghc
 
 # fix ld search path
 sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' \
@@ -279,6 +296,14 @@ sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' \
 %if 0%{?rhel} >= 7
   --enable-targets=host \
 %endif
+%ifarch armv7hl armv7l
+  --with-cpu=cortex-a8 \
+  --with-tune=cortex-a8 \
+  --with-arch=armv7-a \
+  --with-float=hard \
+  --with-fpu=vfpv3-d16 \
+  --with-abi=aapcs-linux \
+%endif
   --disable-assertions \
   --enable-debug-runtime \
   --enable-jit \
@@ -289,6 +314,10 @@ sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' \
 # configure does not properly specify libdir
 sed -i 's|(PROJ_prefix)/lib|(PROJ_prefix)/%{_lib}/%{name}|g' Makefile.config
 
+# FIXME upstream need to fix this
+# llvm-config.cpp hardcodes lib in it
+sed -i 's|ActiveLibDir = ActivePrefix + "/lib"|ActiveLibDir = ActivePrefix + "/%{_lib}/%{name}"|g' tools/llvm-config/llvm-config.cpp
+
 make %{_smp_mflags} REQUIRES_RTTI=1 VERBOSE=1 \
 %ifarch ppc
   OPTIMIZE_OPTION="%{optflags} -fno-var-tracking-assignments -UPPC"
@@ -298,7 +327,6 @@ make %{_smp_mflags} REQUIRES_RTTI=1 VERBOSE=1 \
 
 
 %install
-rm -rf %{buildroot}
 # workaround for http://llvm.org/bugs/show_bug.cgi?id=11177
 %if %{with ocaml}
 cp -p bindings/ocaml/llvm/META.llvm bindings/ocaml/llvm/Release/
@@ -529,6 +557,9 @@ exit 0
 %endif
 
 %changelog
+* Sun Nov 18 2012 Michel Salim <salimma@fedoraproject.org> - 3.1-11
+- Backport llvm-3.1-11.fc18
+
 * Mon Sep 24 2012 Michel Salim <salimma@fedoraproject.org> - 3.0-14
 - Rebuild for GCC 4.7.2
 
