@@ -36,7 +36,7 @@ ExcludeArch: s390 s390x ppc ppc64
 
 Name:           llvm
 Version:        3.1
-Release:        13%{?dist}
+Release:        13.1%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -69,7 +69,8 @@ Patch800: llvm-3.1-docs-pod-markup-fixes.patch
 BuildRequires:  bison
 BuildRequires:  chrpath
 BuildRequires:  flex
-BuildRequires:  gcc-c++ >= 3.4
+BuildRequires:  gcc = %{gcc_version}
+BuildRequires:  gcc-c++ = %{gcc_version}
 BuildRequires:  groff
 BuildRequires:  libffi-devel
 BuildRequires:  libtool-ltdl-devel
@@ -140,7 +141,7 @@ License:        NCSA
 Group:          Development/Languages
 Requires:       llvm%{?_isa} = %{version}-%{release}
 # clang requires gcc, clang++ requires libstdc++-devel
-Requires:       gcc
+Requires:       gcc = %{gcc_version}
 Requires:       libstdc++-devel = %{gcc_version}
 
 %description -n clang
@@ -288,6 +289,9 @@ sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' \
 # https://bugzilla.redhat.com/show_bug.cgi?id=791365
 %global optflags %(echo %{optflags} | sed 's/-O2 /-O2 -fno-tree-pre /')
 
+# building with clang failing
+export CC=gcc
+export CXX=c++
 # Disabling assertions now, rec. by pure and needed for OpenGTL
 %configure \
   --prefix=%{_prefix} \
@@ -313,7 +317,8 @@ sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' \
   --enable-debug-runtime \
   --enable-jit \
   --enable-libffi \
-  --enable-shared
+  --enable-shared \
+  --with-c-include-dirs=%{_includedir}:$(echo %{_prefix}/lib/gcc/%{_target_cpu}*/%{gcc_version}/include)
 
 # FIXME file this
 # configure does not properly specify libdir
@@ -483,6 +488,7 @@ exit 0
 %exclude %{_mandir}/man1/clang.1.*
 %endif
 %doc %{_mandir}/man1/*.1.*
+%exclude %{_mandir}/man1/llvm-config.1.*
 
 %files devel
 %defattr(-,root,root,-)
@@ -490,6 +496,7 @@ exit 0
 %{_includedir}/%{name}
 %{_includedir}/%{name}-c
 %{_libdir}/%{name}/*.a
+%doc %{_mandir}/man1/llvm-config.1.*
 
 %files libs
 %defattr(-,root,root,-)
@@ -561,6 +568,13 @@ exit 0
 %endif
 
 %changelog
+* Fri Feb  8 2013 Jens Petersen <petersen@redhat.com> - 3.1-13.1
+- build with gcc/g++ even if clang is installed
+- bring back configuration for gcc arch include dir (Yury Zaytsev, #893817)
+  which was dropped in 3.0-0.1.rc3
+- BR gcc and gcc-c++ with gcc_version
+- move lvm-config manpage to devel subpackage (#855882)
+
 * Wed Jan 23 2013 Jens Petersen <petersen@redhat.com> - 3.1-13
 - fix some docs pod markup errors to build with new perl-Pod-Parser
 
