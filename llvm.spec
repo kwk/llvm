@@ -6,7 +6,11 @@
 
 # clang header paths are hard-coded at compile time
 # and need adjustment whenever there's a new GCC version
+%if 0%{?fedora} == 18
 %global gcc_version 4.7.2
+%else
+%global gcc_version 4.8.0
+%endif
 
 %ifarch s390 s390x sparc64
   # No ocaml on these arches
@@ -15,12 +19,7 @@
   %bcond_without ocaml
 %endif
 
-%if 0%{?rhel} >= 7
-%bcond_with clang
-ExcludeArch: s390 s390x ppc ppc64
-%else
 %bcond_without clang
-%endif
 
 #global prerel rcX
 %global downloadurl http://llvm.org/%{?prerel:pre-}releases/%{version}%{?prerel:/%{prerel}}
@@ -35,8 +34,8 @@ ExcludeArch: s390 s390x ppc ppc64
 %endif
 
 Name:           llvm
-Version:        3.1
-Release:        13.1%{?dist}
+Version:        3.2
+Release:        2%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -48,23 +47,27 @@ Source1:        %{downloadurl}/clang-%{version}%{?prerel:%{prerel}}.src.tar.gz
 Source2:        llvm-Config-config.h
 Source3:        llvm-Config-llvm-config.h
 
-
 # Data files should be installed with timestamps preserved
 Patch0:         llvm-2.6-timestamp.patch
 
-# r600 llvm and clang patches
-Patch600: 0001-r600-Add-some-intrinsic-definitions.patch
-Patch601: 0002-r600-Add-get_global_size-and-get_local_size-intrinsi.patch
+Patch10:        llvm-3.2-clang-driver-secondary-arch-triplets.patch
 
-Patch610: 0001-Add-r600-TargetInfo.patch
-Patch611: 0002-r600-Add-some-target-builtins.patch
-Patch612: 0003-r600-Add-read_global_size-and-read_local_size-builti.patch
+# hack llvm-config to print -lLLVM-3.2svn instead of ALL THE THINGS
+#
+# you really, really, really want not to use the static libs, otherwise
+# if you ever end up with two (static) copies of llvm in the same process
+# things will go boom quite nicely
+# 
+# this isn't enabled yet because it makes the ocaml bindings fail the
+# test suite.  i don't even.
+Patch20:	llvm-3.2-llvm-config-dso-hack.patch
 
-# ghc
-Patch700: llvm-fix-ghc.patch
-
-# doc
-Patch800: llvm-3.1-docs-pod-markup-fixes.patch
+# from http://people.freedesktop.org/~tstellar/llvm/3.2/ as of 7 March 2013
+# ref: http://lists.freedesktop.org/archives/mesa-dev/2013-March/035561.html
+Patch600:	R600-Mesa-9.1.patch.gz
+Patch601:	0001-LegalizeDAG-Allow-type-promotion-for-scalar-stores.patch
+Patch602:	0002-LegalizeDAG-Allow-promotion-of-scalar-loads.patch
+Patch603:	0003-DAGCombiner-Avoid-generating-illegal-vector-INT_TO_F.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -87,6 +90,8 @@ BuildRequires:  dejagnu tcl-devel python
 %if %{with doxygen}
 BuildRequires:  doxygen graphviz
 %endif
+# pod2man moved to perl-podlators in F19
+BuildRequires:  %{_bindir}/pod2man
 Requires:       llvm-libs%{?_isa} = %{version}-%{release}
 
 %description
@@ -103,7 +108,6 @@ Group:          Development/Languages
 Requires:       %{name}%{?_isa} = %{version}-%{release}
 Requires:       libffi-devel
 Requires:       libstdc++-devel >= 3.4
-Provides:       llvm-static = %{version}-%{release}
 
 Requires(posttrans): /usr/sbin/alternatives
 Requires(postun):    /usr/sbin/alternatives
@@ -132,6 +136,16 @@ Group:          System Environment/Libraries
 
 %description libs
 Shared libraries for the LLVM compiler infrastructure.
+
+
+%package static
+Summary:	LLVM static libraries
+Group:		Development/Languages
+Requires:	%{name}-devel%{?_isa} = %{version}-%{release}
+
+%description static
+Static libraries for the LLVM compiler infrastructure.  Not recommended
+for general consumption.
 
 
 %if %{with clang}
@@ -260,24 +274,17 @@ mv clang-%{version}%{?prerel}.src tools/clang
 
 # llvm patches
 %patch0 -p1 -b .timestamp
-#patch1 -p1 -b .link_llvmgold_to_lto
 
-# r600 llvm patch
-%patch600 -p1 -b .r600
-%patch601 -p1 -b .r601
+# clang triplets
+%patch10 -p1 -b .orig
 
-# clang patches
-%if %{with clang}
-pushd tools/clang
-%patch610 -p1 -b .r610
-%patch611 -p1 -b .r611
-%patch612 -p1 -b .r612
-popd
-%endif
+# fix llvm-config --libs
+#patch20 -p1 -b .orig
 
-%patch700 -p0 -b .ghc
-
-%patch800 -p1 -b .r800
+%patch600 -p1 -b .orig
+%patch601 -p1 -b .orig
+%patch602 -p1 -b .orig
+%patch603 -p1 -b .orig
 
 # fix ld search path
 sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' \
@@ -302,9 +309,6 @@ export CXX=c++
 %if %{with gold}
   --with-binutils-include=%{_includedir} \
 %endif
-%if 0%{?rhel} >= 7
-  --enable-targets=host \
-%endif
 %ifarch armv7hl armv7l
   --with-cpu=cortex-a8 \
   --with-tune=cortex-a8 \
@@ -318,7 +322,8 @@ export CXX=c++
   --enable-jit \
   --enable-libffi \
   --enable-shared \
-  --with-c-include-dirs=%{_includedir}:$(echo %{_prefix}/lib/gcc/%{_target_cpu}*/%{gcc_version}/include)
+  --with-c-include-dirs=%{_includedir}:$(echo %{_prefix}/lib/gcc/%{_target_cpu}*/%{gcc_version}/include) \
+  --enable-experimental-targets=R600
 
 # FIXME file this
 # configure does not properly specify libdir
@@ -495,8 +500,6 @@ exit 0
 %{_bindir}/llvm-config-%{__isa_bits}
 %{_includedir}/%{name}
 %{_includedir}/%{name}-c
-%{_libdir}/%{name}/*.a
-%doc %{_mandir}/man1/llvm-config.1.*
 
 %files libs
 %defattr(-,root,root,-)
@@ -506,6 +509,10 @@ exit 0
 %exclude %{_libdir}/%{name}/libclang.so
 %endif
 %{_libdir}/%{name}/*.so
+
+%files static
+%defattr(-,root,root,-)
+%{_libdir}/%{name}/*.a
 
 %if %{with clang}
 %files -n clang
@@ -568,12 +575,31 @@ exit 0
 %endif
 
 %changelog
-* Fri Feb  8 2013 Jens Petersen <petersen@redhat.com> - 3.1-13.1
+* Fri Mar 08 2013 Adam Jackson <ajax@redhat.com> 3.2-2
+- Update R600 patches
+- Move static libs to -static subpackage
+- Prep for F18 backport
+
+* Wed Feb 13 2013 Jens Petersen <petersen@redhat.com> - 3.2-1
+- update to 3.2
+- update R600 patches to Tom Stellard's git tree
+- llvm-fix-ghc.patch is upstream
+- llvm-3.1-docs-pod-markup-fixes.patch no longer needed
+- add llvm-3.2-clang-driver-secondary-arch-triplets.patch (#803433)
 - build with gcc/g++ even if clang is installed
+- llvm-config.1 manpage is no longer
+
+* Mon Feb  4 2013 Jens Petersen <petersen@redhat.com> - 3.1-16
 - bring back configuration for gcc arch include dir (Yury Zaytsev, #893817)
   which was dropped in 3.0-0.1.rc3
 - BR gcc and gcc-c++ with gcc_version
+
+* Thu Jan 31 2013 Jens Petersen <petersen@redhat.com> - 3.1-15
 - move lvm-config manpage to devel subpackage (#855882)
+- pod2man moved to perl-podlators in F19
+
+* Fri Jan 25 2013 Kalev Lember <kalevlember@gmail.com> - 3.1-14
+- Rebuilt for GCC 4.8.0
 
 * Wed Jan 23 2013 Jens Petersen <petersen@redhat.com> - 3.1-13
 - fix some docs pod markup errors to build with new perl-Pod-Parser
