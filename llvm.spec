@@ -4,7 +4,6 @@
 # Components built by default:
 %bcond_without clang
 %bcond_without crt
-%bcond_without lldb
 
 # Components enabled if supported by target arch:
 %ifnarch s390 s390x sparc64
@@ -17,6 +16,13 @@
 %else
   %bcond_with gold
 %endif
+# ppc64 fails to build lldb upstream
+%ifnarch ppc ppc64
+  %bcond_without lldb
+%else
+  %bcond_with lldb
+%endif
+
 
 # Documentation install path
 %if 0%{?fedora} < 20
@@ -29,7 +35,7 @@
 
 Name:           llvm
 Version:        3.3
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -627,6 +633,9 @@ exit 0
 %endif
 
 %changelog
+* Fri Jan 17 2014 Dave Airlie <airlied@redhat.com> 3.3-5
+- build after disabling lldb for ppc64
+
 * Fri Dec 20 2013 Jan Vcelak <jvcelak@fedoraproject.org> 3.3-4
 - remove RPATHs
 - run ldconfig when installing lldb (#1044431)
