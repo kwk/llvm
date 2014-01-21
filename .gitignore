@@ -1,2 +1,5 @@
-/llvm-2.8.tgz
-/clang-2.8.tgz
+/cfe-*.src.tar.gz
+/compiler-rt-*.src.tar.gz
+/lldb-*.src.tar.gz
+/llvm-*.src.tar.gz
+/clang-3.4.src.tar.gz

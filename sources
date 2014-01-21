@@ -1,2 +1,4 @@
-220d361b4d17051ff4bb21c64abe05ba  llvm-2.8.tgz
-10e14c901fc3728eecbd5b829e011b59  clang-2.8.tgz
+b378f1e2c424e03289effc75268d3d2c  clang-3.4.src.tar.gz
+7ed60a0463f9fdfa20db7109d4624cee  lldb-3.4.src.tar.gz
+7938353e3a3bda85733a165e7ac4bb84  compiler-rt-3.4.src.tar.gz
+46ed668a1ce38985120dbf6344cf6116  llvm-3.4.src.tar.gz
