@@ -11,16 +11,23 @@
 %else
   %bcond_with ocaml
 %endif
-%ifarch %ix86 x86_64
-  %bcond_without gold
-%else
-  %bcond_with gold
-%endif
-# ppc64 fails to build lldb upstream
-%ifnarch ppc ppc64
-  %bcond_without lldb
-%else
-  %bcond_with lldb
+# If build on Fedora or RHEL 7
+%if 0%{?rhel}%{?fedora} >= 7
+  # gold not available on RHEL 6
+  %ifarch %ix86 x86_64
+    %bcond_without gold
+  %else
+    %bcond_with gold
+  %endif
+  # lldb requires gcc 4.6 or higher
+  # ppc64 fails to build lldb upstream
+  %ifnarch ppc ppc64
+    %bcond_without lldb
+  %else
+    %bcond_with lldb
+  %endif
+  # gcc 4.4 doesn't understand c++11 (wants c++0x)
+  %bcond_without cxx11
 %endif
 
 
@@ -36,7 +43,7 @@
 
 Name:           llvm
 Version:        3.4
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -298,7 +305,9 @@ export CXX=c++
   --libdir=%{_libdir}/%{name} \
   --disable-polly \
   --disable-libcpp \
+%if %{with cxx11}
   --enable-cxx11 \
+%endif
   --enable-clang-arcmt \
   --enable-clang-static-analyzer \
   --enable-clang-rewriter \
@@ -649,6 +658,9 @@ exit 0
 %endif
 
 %changelog
+* Sat Jan 18 2014 Dave Johansen <davejohansen@gmail.com> 3.4-4
+- Enable building on EL6
+
 * Fri Jan 17 2014 Dave Airlie <airlied@redhat.com> 3.4-3
 - bump nvr for lldb on ppc disable
 
