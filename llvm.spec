@@ -28,6 +28,10 @@
   %endif
   # gcc 4.4 doesn't understand c++11 (wants c++0x)
   %bcond_without cxx11
+%else
+# pure 0.55 doesn't work with newer versions of llvm and 0.58 doesn't work with old libstdc++
+# See https://bugzilla.redhat.com/show_bug.cgi?id=1058472
+Obsoletes: pure <= 0.55
 %endif
 
 
@@ -43,7 +47,7 @@
 
 Name:           llvm
 Version:        3.4
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -658,6 +662,9 @@ exit 0
 %endif
 
 %changelog
+* Wed Jan 29 2014 Dave Johansen <davejohansen@gmail.com> 3.4-5
+- Obsoleting pure on EL6
+
 * Sat Jan 18 2014 Dave Johansen <davejohansen@gmail.com> 3.4-4
 - Enable building on EL6
 
