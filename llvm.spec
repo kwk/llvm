@@ -47,7 +47,7 @@ Obsoletes: pure <= 0.55
 
 Name:           llvm
 Version:        3.4
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -359,7 +359,6 @@ export CXX=c++
 %if %{with gold}
   --with-binutils-include=%{_includedir} \
 %endif
-  --with-c-include-dirs=%{_includedir}:$(echo %{_prefix}/lib/gcc/%{_target_cpu}*/*/include) \
   --with-optimize-option=-O3
 
 make %{_smp_mflags} REQUIRES_RTTI=1 VERBOSE=1 \
@@ -662,6 +661,9 @@ exit 0
 %endif
 
 %changelog
+* Mon Feb 03 2014 Dave Johansen <davejohansen@gmail.com> 3.4-6
+- Removing specification of --with-c-include-dirs
+
 * Wed Jan 29 2014 Dave Johansen <davejohansen@gmail.com> 3.4-5
 - Obsoleting pure on EL6
 
