@@ -47,7 +47,7 @@ Obsoletes: pure <= 0.55
 
 Name:           llvm
 Version:        3.4
-Release:        6%{?dist}
+Release:        7%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -305,6 +305,10 @@ sed -i 's|/lib\>|/%{_lib}/%{name}|g' tools/llvm-config/llvm-config.cpp
 # clang is lovely and all, but fedora builds with gcc
 export CC=gcc
 export CXX=c++
+# Add include path for ffi.h
+export CPPFLAGS=-I$(echo %{_libdir}/libffi-*/include)
+export CFLAGS="$RPM_OPT_FLAGS $CPPFLAGS"
+export CXXFLAGS="$RPM_OPT_FLAGS $CPPFLAGS"
 %configure \
   --libdir=%{_libdir}/%{name} \
   --disable-polly \
@@ -661,6 +665,9 @@ exit 0
 %endif
 
 %changelog
+* Tue Feb 04 2014 Dave Johansen <davejohansen@gmail.com> 3.4-7
+- Adding include path for ffi.h
+
 * Mon Feb 03 2014 Dave Johansen <davejohansen@gmail.com> 3.4-6
 - Removing specification of --with-c-include-dirs
 
