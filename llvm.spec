@@ -671,15 +671,15 @@ exit 0
 * Mon Feb 03 2014 Dave Johansen <davejohansen@gmail.com> 3.4-7
 - Removing specification of --with-c-include-dirs
 
-* Wed Jan 29 2014 Dave Johansen <davejohansen@gmail.com> 3.4-6
-- Obsoleting pure on EL6
-
-* Sat Jan 18 2014 Dave Johansen <davejohansen@gmail.com> 3.4-5
-- Enable building on EL6
-
-* Fri Jan 31 2014 Kyle McMartin <kyle@redhat.com> 3.4-4
+* Fri Jan 31 2014 Kyle McMartin <kyle@redhat.com> 3.4-6
 - Disable lldb on everything but x86_64, and i686. It hasn't been ported
   beyond those platforms so far.
+
+* Wed Jan 29 2014 Dave Johansen <davejohansen@gmail.com> 3.4-5
+- Obsoleting pure on EL6
+
+* Sat Jan 18 2014 Dave Johansen <davejohansen@gmail.com> 3.4-4
+- Enable building on EL6
 
 * Fri Jan 17 2014 Dave Airlie <airlied@redhat.com> 3.4-3
 - bump nvr for lldb on ppc disable
