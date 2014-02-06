@@ -47,7 +47,7 @@ Obsoletes: pure <= 0.55
 
 Name:           llvm
 Version:        3.4
-Release:        8%{?dist}
+Release:        9%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -341,8 +341,6 @@ export CXXFLAGS="$RPM_OPT_FLAGS $CPPFLAGS"
   --disable-embed-stdcxx \
   --enable-timestamps \
   --enable-backtraces \
-  --enable-targets=x86,powerpc,arm,aarch64,cpp,nvptx,systemz \
-  --enable-experimental-targets=R600 \
 %if %{with ocaml}
   --enable-bindings=ocaml \
 %else
@@ -665,6 +663,9 @@ exit 0
 %endif
 
 %changelog
+* Wed Feb 05 2014 Dave Johansen <davejohansen@gmail.com> 3.4-9
+- Removing specification of targets
+
 * Tue Feb 04 2014 Dave Johansen <davejohansen@gmail.com> 3.4-8
 - Adding include path for ffi.h
 
