@@ -47,9 +47,7 @@ URL:            http://llvm.org/
 Source0:        %{downloadurl}/llvm-%{version}%{?prerel}.src.tar.gz
 Source1:        %{downloadurl}/clang-%{version}%{?prerel}.src.tar.gz
 Source2:        %{downloadurl}/compiler-rt-%{version}%{?prerel}.src.tar.gz
-%if %{with lldb}
 Source3:        %{downloadurl}/lldb-%{version}%{?prerel}.src.tar.gz
-%endif
 
 # multilib fixes
 Source10:       llvm-Config-config.h
@@ -125,11 +123,11 @@ Documentation for the LLVM compiler infrastructure.
 Summary:        LLVM shared libraries
 Group:          System Environment/Libraries
 ## retire OpenGTL/libQtGTL here
-Obsoletes: OpenGTL < 0.9.18-50
-Obsoletes: OpenGTL-libs < 0.9.18-50
-Obsoletes: OpenGTL-devel < 0.9.18-50
-Obsoletes: libQtGTL < 0.9.3-50
-Obsoletes: libQtGTL-devel < 0.9.3-50
+#Obsoletes: OpenGTL < 0.9.18-50
+#Obsoletes: OpenGTL-libs < 0.9.18-50
+#Obsoletes: OpenGTL-devel < 0.9.18-50
+#Obsoletes: libQtGTL < 0.9.3-50
+#Obsoletes: libQtGTL-devel < 0.9.3-50
 
 %description libs
 Shared libraries for the LLVM compiler infrastructure.
@@ -659,7 +657,12 @@ exit 0
 %endif
 
 %changelog
-* Thu Mar 27 2014 Rex Dieter <rdieter@fedoraproject.org> 3.4-6
+* Fri Apr 11 2014 Adam Jackson <ajax@redhat.com> 3.4-6
+- Undo OpenGTL obsoletion in F20 since we got it building
+- Don't conditionalize lldb source, it does the wrong thing when koji decides
+  it's cool to build the srpm on !x86.
+
+* Thu Mar 27 2014 Rex Dieter <rdieter@fedoraproject.org>
 - -libs: Obsoletes: OpenGTL libQtGTL
 
 * Wed Mar 19 2014 Dave Airlie <airlied@redhat.com> 3.4-5
