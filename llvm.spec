@@ -47,7 +47,7 @@ Obsoletes: pure <= 0.55
 
 Name:           llvm
 Version:        3.4
-Release:        9%{?dist}
+Release:        10%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -69,6 +69,7 @@ Source11:       llvm-Config-llvm-config.h
 # patches
 Patch1:         0001-data-install-preserve-timestamps.patch
 Patch2:         0002-linker-flags-speedup-memory.patch
+Patch3:         0003-amazon-triples.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -295,6 +296,7 @@ mv lldb-%{version} tools/lldb
 
 %patch1 -p1
 %patch2 -p1
+%patch3 -p1
 
 # fix library paths
 sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' ./configure
@@ -663,6 +665,9 @@ exit 0
 %endif
 
 %changelog
+* Wed Apr 23 2014 Dave Johansen <davejohansen@gmail.com> 3.4-10
+- Adding support for Amazon Linux
+
 * Wed Feb 05 2014 Dave Johansen <davejohansen@gmail.com> 3.4-9
 - Removing specification of targets
 
