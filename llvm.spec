@@ -43,11 +43,13 @@ Obsoletes: pure <= 0.55
 %endif
 
 #global prerel rc3
+%global version_base 3.4
 %global downloadurl http://llvm.org/%{?prerel:pre-}releases/%{version}%{?prerel:/%{prerel}}
+%global downloadurl_base http://llvm.org/%{?prerel:pre-}releases/%{version_base}%{?prerel:/%{prerel}}
 
 Name:           llvm
-Version:        3.4
-Release:        10%{?dist}
+Version:        %{version_base}.2
+Release:        1%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -56,10 +58,10 @@ URL:            http://llvm.org/
 
 # source archives
 Source0:        %{downloadurl}/llvm-%{version}%{?prerel}.src.tar.gz
-Source1:        %{downloadurl}/clang-%{version}%{?prerel}.src.tar.gz
-Source2:        %{downloadurl}/compiler-rt-%{version}%{?prerel}.src.tar.gz
+Source1:        %{downloadurl}/cfe-%{version}%{?prerel}.src.tar.gz
+Source2:        %{downloadurl_base}/compiler-rt-%{version_base}%{?prerel}.src.tar.gz
 %if %{with lldb}
-Source3:        %{downloadurl}/lldb-%{version}%{?prerel}.src.tar.gz
+Source3:        %{downloadurl_base}/lldb-%{version_base}%{?prerel}.src.tar.gz
 %endif
 
 # multilib fixes
@@ -282,16 +284,16 @@ HTML documentation for LLVM's OCaml binding.
 
 
 %prep
-%setup -q %{?with_clang:-a1} %{?with_crt:-a2} %{?with_lldb:-a3}
+%setup -q %{?with_clang:-a1} %{?with_crt:-a2} %{?with_lldb:-a3} -n llvm-%{version}.src
 rm -rf tools/clang tools/lldb projects/compiler-rt
 %if %{with clang}
-mv clang-%{version} tools/clang
+mv cfe-%{version}.src tools/clang
 %endif
 %if %{with crt}
-mv compiler-rt-%{version} projects/compiler-rt
+mv compiler-rt-%{version_base} projects/compiler-rt
 %endif
 %if %{with lldb}
-mv lldb-%{version} tools/lldb
+mv lldb-%{version_base} tools/lldb
 %endif
 
 %patch1 -p1
@@ -665,6 +667,9 @@ exit 0
 %endif
 
 %changelog
+* Sun Aug 03 2014 Dave Johansen <davejohansen@gmail.com> 3.4.2-1
+- Updated to 3.4.2
+
 * Wed Apr 23 2014 Dave Johansen <davejohansen@gmail.com> 3.4-10
 - Adding support for Amazon Linux
 
