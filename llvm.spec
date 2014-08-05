@@ -11,16 +11,27 @@
 %else
   %bcond_with ocaml
 %endif
-%ifarch %ix86 x86_64
-  %bcond_without gold
+# If build on Fedora or RHEL 7
+%if 0%{?rhel}%{?fedora} >= 7
+  # gold not available on RHEL 6
+  %ifarch %ix86 x86_64
+    %bcond_without gold
+  %else
+    %bcond_with gold
+  %endif
+  # lldb requires gcc 4.6 or higher
+  # lldb not ported to anything but x86 so far.
+  %ifarch x86_64 %{ix86}
+    %bcond_without lldb
+  %else
+    %bcond_with lldb
+  %endif
+  # gcc 4.4 doesn't understand c++11 (wants c++0x)
+  %bcond_without cxx11
 %else
-  %bcond_with gold
-%endif
-# lldb not ported to anything but x86 so far.
-%ifarch x86_64 %{ix86}
-  %bcond_without lldb
-%else
-  %bcond_with lldb
+# pure 0.55 doesn't work with newer versions of llvm and 0.58 doesn't work with old libstdc++
+# See https://bugzilla.redhat.com/show_bug.cgi?id=1058472
+Obsoletes: pure <= 0.55
 %endif
 
 
@@ -32,11 +43,13 @@
 %endif
 
 #global prerel rc3
+%global version_base 3.4
 %global downloadurl http://llvm.org/%{?prerel:pre-}releases/%{version}%{?prerel:/%{prerel}}
+%global downloadurl_base http://llvm.org/%{?prerel:pre-}releases/%{version_base}%{?prerel:/%{prerel}}
 
 Name:           llvm
-Version:        3.4
-Release:        4%{?dist}
+Version:        %{version_base}.2
+Release:        1%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -45,10 +58,10 @@ URL:            http://llvm.org/
 
 # source archives
 Source0:        %{downloadurl}/llvm-%{version}%{?prerel}.src.tar.gz
-Source1:        %{downloadurl}/clang-%{version}%{?prerel}.src.tar.gz
-Source2:        %{downloadurl}/compiler-rt-%{version}%{?prerel}.src.tar.gz
+Source1:        %{downloadurl}/cfe-%{version}%{?prerel}.src.tar.gz
+Source2:        %{downloadurl_base}/compiler-rt-%{version_base}%{?prerel}.src.tar.gz
 %if %{with lldb}
-Source3:        %{downloadurl}/lldb-%{version}%{?prerel}.src.tar.gz
+Source3:        %{downloadurl_base}/lldb-%{version_base}%{?prerel}.src.tar.gz
 %endif
 
 # multilib fixes
@@ -58,6 +71,7 @@ Source11:       llvm-Config-llvm-config.h
 # patches
 Patch1:         0001-data-install-preserve-timestamps.patch
 Patch2:         0002-linker-flags-speedup-memory.patch
+Patch3:         0003-amazon-triples.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -270,20 +284,21 @@ HTML documentation for LLVM's OCaml binding.
 
 
 %prep
-%setup -q %{?with_clang:-a1} %{?with_crt:-a2} %{?with_lldb:-a3}
+%setup -q %{?with_clang:-a1} %{?with_crt:-a2} %{?with_lldb:-a3} -n llvm-%{version}.src
 rm -rf tools/clang tools/lldb projects/compiler-rt
 %if %{with clang}
-mv clang-%{version} tools/clang
+mv cfe-%{version}.src tools/clang
 %endif
 %if %{with crt}
-mv compiler-rt-%{version} projects/compiler-rt
+mv compiler-rt-%{version_base} projects/compiler-rt
 %endif
 %if %{with lldb}
-mv lldb-%{version} tools/lldb
+mv lldb-%{version_base} tools/lldb
 %endif
 
 %patch1 -p1
 %patch2 -p1
+%patch3 -p1
 
 # fix library paths
 sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' ./configure
@@ -294,11 +309,17 @@ sed -i 's|/lib\>|/%{_lib}/%{name}|g' tools/llvm-config/llvm-config.cpp
 # clang is lovely and all, but fedora builds with gcc
 export CC=gcc
 export CXX=c++
+# Add include path for ffi.h
+export CPPFLAGS=-I$(echo %{_libdir}/libffi-*/include)
+export CFLAGS="$RPM_OPT_FLAGS $CPPFLAGS"
+export CXXFLAGS="$RPM_OPT_FLAGS $CPPFLAGS"
 %configure \
   --libdir=%{_libdir}/%{name} \
   --disable-polly \
   --disable-libcpp \
+%if %{with cxx11}
   --enable-cxx11 \
+%endif
   --enable-clang-arcmt \
   --enable-clang-static-analyzer \
   --enable-clang-rewriter \
@@ -324,8 +345,6 @@ export CXX=c++
   --disable-embed-stdcxx \
   --enable-timestamps \
   --enable-backtraces \
-  --enable-targets=x86,powerpc,arm,aarch64,cpp,nvptx,systemz \
-  --enable-experimental-targets=R600 \
 %if %{with ocaml}
   --enable-bindings=ocaml \
 %else
@@ -346,7 +365,6 @@ export CXX=c++
 %if %{with gold}
   --with-binutils-include=%{_includedir} \
 %endif
-  --with-c-include-dirs=%{_includedir}:$(echo %{_prefix}/lib/gcc/%{_target_cpu}*/*/include) \
   --with-optimize-option=-O3
 
 make %{_smp_mflags} REQUIRES_RTTI=1 VERBOSE=1 \
@@ -649,9 +667,30 @@ exit 0
 %endif
 
 %changelog
-* Fri Jan 31 2014 Kyle McMartin <kyle@redhat.com> 3.4-4
+* Sun Aug 03 2014 Dave Johansen <davejohansen@gmail.com> 3.4.2-1
+- Updated to 3.4.2
+
+* Wed Apr 23 2014 Dave Johansen <davejohansen@gmail.com> 3.4-10
+- Adding support for Amazon Linux
+
+* Wed Feb 05 2014 Dave Johansen <davejohansen@gmail.com> 3.4-9
+- Removing specification of targets
+
+* Tue Feb 04 2014 Dave Johansen <davejohansen@gmail.com> 3.4-8
+- Adding include path for ffi.h
+
+* Mon Feb 03 2014 Dave Johansen <davejohansen@gmail.com> 3.4-7
+- Removing specification of --with-c-include-dirs
+
+* Fri Jan 31 2014 Kyle McMartin <kyle@redhat.com> 3.4-6
 - Disable lldb on everything but x86_64, and i686. It hasn't been ported
   beyond those platforms so far.
+
+* Wed Jan 29 2014 Dave Johansen <davejohansen@gmail.com> 3.4-5
+- Obsoleting pure on EL6
+
+* Sat Jan 18 2014 Dave Johansen <davejohansen@gmail.com> 3.4-4
+- Enable building on EL6
 
 * Fri Jan 17 2014 Dave Airlie <airlied@redhat.com> 3.4-3
 - bump nvr for lldb on ppc disable
