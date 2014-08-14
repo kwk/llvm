@@ -49,7 +49,7 @@ Obsoletes: pure <= 0.55
 
 Name:           llvm
 Version:        %{version_base}.2
-Release:        7%{?dist}
+Release:        8%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -74,6 +74,7 @@ Patch4:         0004-devtoolset.patch
 Patch5:         0005-scan-build-dir.patch
 Patch6:         0006-fix-python-package-installation.patch
 Patch7:         0007-rhel-detection.patch
+Patch8:         0001-PPC64LE-ELFv2-ABI-updates-for-the-.opd-section.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -307,6 +308,7 @@ mv lldb-%{version_base} tools/lldb
 %patch6 -p1
 %endif
 %patch7 -p1
+%patch8 -p1
 
 # fix library paths
 sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' ./configure
@@ -676,6 +678,9 @@ exit 0
 %endif
 
 %changelog
+* Mon Dec 07 2015 Dan Horák <dan[at]danny.cz> 3.4.2-8
+- Add ppc64le fix from Fedora llvm 3.4
+
 * Sat Mar 21 2015 Dave Johansen <davejohansen@gmail.com> 3.4.2-7
 - Rebuild for ocaml 4.01.1
 
