@@ -49,7 +49,7 @@ Obsoletes: pure <= 0.55
 
 Name:           llvm
 Version:        %{version_base}.2
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -72,6 +72,7 @@ Source11:       llvm-Config-llvm-config.h
 Patch1:         0001-data-install-preserve-timestamps.patch
 Patch2:         0002-linker-flags-speedup-memory.patch
 Patch3:         0003-amazon-triples.patch
+Patch4:         0004-devtoolset.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -299,6 +300,7 @@ mv lldb-%{version_base} tools/lldb
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
+%patch4 -p1
 
 # fix library paths
 sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' ./configure
@@ -667,6 +669,9 @@ exit 0
 %endif
 
 %changelog
+* Sat Nov 15 2014 Dave Johansen <davejohansen@gmail.com> 3.4.2-2
+- Adding support for using devtoolset
+
 * Sun Aug 03 2014 Dave Johansen <davejohansen@gmail.com> 3.4.2-1
 - Updated to 3.4.2
 
