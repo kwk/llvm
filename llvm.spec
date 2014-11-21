@@ -143,9 +143,9 @@ Shared libraries for the LLVM compiler infrastructure.
 
 
 %package static
-Summary:	LLVM static libraries
-Group:		Development/Languages
-Requires:	%{name}-devel%{?_isa} = %{version}-%{release}
+Summary:  LLVM static libraries
+Group:    Development/Languages
+Requires: %{name}-devel%{?_isa} = %{version}-%{release}
 
 %description static
 Static libraries for the LLVM compiler infrastructure.  Not recommended
@@ -444,7 +444,7 @@ mkdir -p %{buildroot}%{_docdir}
 # llvm
 mkdir -p %{buildroot}%{llvmdocdir llvm}
 for f in CREDITS.TXT LICENSE.TXT README.txt; do
-	cp $f %{buildroot}%{llvmdocdir llvm}
+  cp $f %{buildroot}%{llvmdocdir llvm}
 done
 
 # llvm-doc
