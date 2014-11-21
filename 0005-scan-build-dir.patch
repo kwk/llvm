@@ -1,0 +1,15 @@
+--- a/tools/clang/tools/scan-build/scan-build
++++ b/tools/clang/tools/scan-build/scan-build
+@@ -204,6 +204,12 @@
+   else {
+     $NewDir = "$Dir/$DateString-$RunNumber";
+   }
++
++  # Make sure that the directory does not exist in order to avoid hijack.
++  if (-d $NewDir) {
++      DieDiag("The directory '$NewDir' already exists.\n");
++  }
++
+   system 'mkdir','-p',$NewDir;
+   return $NewDir;
+ }
