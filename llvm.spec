@@ -29,7 +29,7 @@
 
 Name:           llvm
 Version:        3.3
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -50,6 +50,7 @@ Source11:       llvm-Config-llvm-config.h
 Patch1:         0001-data-install-preserve-timestamps.patch
 Patch2:         0002-linker-flags-speedup-memory.patch
 Patch3:         0003-fix-clear-cache-declaration.patch
+Patch4:         0004-clang-analyzer-cve-2014-2893.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -268,6 +269,7 @@ mv lldb-%{version}.src tools/lldb
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
+%patch4 -p1
 
 # fix library paths
 sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' ./configure
@@ -627,6 +629,9 @@ exit 0
 %endif
 
 %changelog
+* Fri Dec 26 2014 Jan Vcelak <jvcelak@fedoraproject.org> 3.3-5
+- clang-analyzer: fix insecure temporary file handling (CVE-2014-2893)
+
 * Fri Dec 20 2013 Jan Vcelak <jvcelak@fedoraproject.org> 3.3-4
 - remove RPATHs
 - run ldconfig when installing lldb (#1044431)
