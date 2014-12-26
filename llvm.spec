@@ -36,7 +36,7 @@
 
 Name:           llvm
 Version:        3.4
-Release:        10%{?dist}
+Release:        11%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -65,6 +65,7 @@ Patch12:         0002-linker-flags-speedup-memory.patch
 
 # sledgehammer to default to hard-float on arm
 Patch20:	clang-3.4-arm-hard-float.patch
+Patch21:	clang-analyzer-cve-2014-2893.patch
 
 # http://llvm.org/bugs/attachment.cgi?id=12586
 Patch22:	pr12586.patch
@@ -304,6 +305,7 @@ mv lldb-%{version} tools/lldb
 %patch12 -p1
 %if %{with clang}
 %patch20 -p1
+%patch21 -p1
 %endif
 %patch22 -p1
 
@@ -671,6 +673,9 @@ exit 0
 %endif
 
 %changelog
+* Fri Dec 26 2014 Jan Vcelak <jvcelak@fedoraproject.org> 3.4-11
+- clang-analyzer: fix insecure temporary file handling (CVE-2014-2893)
+
 * Thu Jul 24 2014 Adam Jackson <ajax@redhat.com> 3.4-10
 - llvm and clang 3.4.2
 
