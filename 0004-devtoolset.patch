@@ -1,6 +1,6 @@
 --- a/tools/clang/lib/Driver/ToolChains.cpp
 +++ b/tools/clang/lib/Driver/ToolChains.cpp
-@@ -1223,6 +1223,18 @@
+@@ -1062,6 +1062,18 @@
      // And finally in /usr.
      if (D.SysRoot.empty())
        Prefixes.push_back("/usr");
@@ -17,3 +17,5 @@
 +      }
 +    }
    }
+ 
+   // Loop over the various components which exist and select the best GCC
