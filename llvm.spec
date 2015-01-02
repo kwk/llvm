@@ -49,7 +49,7 @@ Obsoletes: pure <= 0.55
 
 Name:           llvm
 Version:        %{version_base}.2
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -671,6 +671,9 @@ exit 0
 %endif
 
 %changelog
+* Fri Jan 02 2015 Dave Johansen <davejohansen@gmail.com> 3.4.2-4
+- Adding CLANG_DTS_LIST for turning on devtoolset use at runtime
+
 * Thu Nov 20 2014 Dave Johansen <davejohansen@gmail.com> 3.4.2-3
 - Fix for CVE-2014-2893
 
