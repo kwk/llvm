@@ -672,7 +672,7 @@ exit 0
 
 %changelog
 * Fri Jan 02 2015 Dave Johansen <davejohansen@gmail.com> 3.4.2-4
-- Adding CLANG_DTS_LIST for turning on devtoolset use at runtime
+- Adding X_SCLS for turning on devtoolset use at runtime
 
 * Thu Nov 20 2014 Dave Johansen <davejohansen@gmail.com> 3.4.2-3
 - Fix for CVE-2014-2893

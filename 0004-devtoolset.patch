@@ -6,7 +6,7 @@
        Prefixes.push_back("/usr");
 +
 +    // RedHat Developer Toolset support
-+    if (const char *software_collections = getenv("CLANG_DTS_LIST")) {
++    if (const char *software_collections = getenv("X_SCLS")) {
 +      SmallVector<StringRef, 4> Scls;
 +      StringRef(software_collections).split(Scls, StringRef(" "), -1, false);
 +      for (const auto &Scl : Scls) {
