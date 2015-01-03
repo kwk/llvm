@@ -36,7 +36,7 @@
 
 Name:           llvm
 Version:        3.4
-Release:        11%{?dist}
+Release:        12%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -62,6 +62,7 @@ Source11:       llvm-Config-llvm-config.h
 # patches
 Patch11:         0001-data-install-preserve-timestamps.patch
 Patch12:         0002-linker-flags-speedup-memory.patch
+Patch6:         0006-fix-python-package-installation.patch
 
 # sledgehammer to default to hard-float on arm
 Patch20:	clang-3.4-arm-hard-float.patch
@@ -303,6 +304,9 @@ mv lldb-%{version} tools/lldb
 
 %patch11 -p1
 %patch12 -p1
+%if %{with lldb}
+%patch6 -p1
+%endif
 %if %{with clang}
 %patch20 -p1
 %patch21 -p1
@@ -630,6 +634,7 @@ exit 0
 %{_bindir}/lldb
 %{_bindir}/lldb-platform
 %{_libdir}/%{name}/liblldb.so
+%{python_sitearch}/lldb/
 %doc %{_mandir}/man1/lldb.1.*
 
 %files -n lldb-devel
@@ -673,6 +678,9 @@ exit 0
 %endif
 
 %changelog
+* Fri Jan 02 2015 Dave Johansen <davejohansen@gmail.com> 3.4-12
+- Fix for LLDB
+
 * Fri Dec 26 2014 Jan Vcelak <jvcelak@fedoraproject.org> 3.4-11
 - clang-analyzer: fix insecure temporary file handling (CVE-2014-2893)
 
