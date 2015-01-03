@@ -632,6 +632,7 @@ exit 0
 %{_bindir}/lldb
 %{_bindir}/lldb-platform
 %{_libdir}/%{name}/liblldb.so
+%{python_sitearch}/lldb/
 %doc %{_mandir}/man1/lldb.1.*
 
 %files -n lldb-devel
