@@ -49,7 +49,7 @@ Obsoletes: pure <= 0.55
 
 Name:           llvm
 Version:        %{version_base}.2
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -74,6 +74,7 @@ Patch2:         0002-linker-flags-speedup-memory.patch
 Patch3:         0003-amazon-triples.patch
 Patch4:         0004-devtoolset.patch
 Patch5:         0005-scan-build-dir.patch
+Patch6:         0006-fix-python-package-installation.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -303,6 +304,7 @@ mv lldb-%{version_base} tools/lldb
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
+%patch6 -p1
 
 # fix library paths
 sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' ./configure
@@ -671,6 +673,9 @@ exit 0
 %endif
 
 %changelog
+* Fri Jan 02 2015 Dave Johansen <davejohansen@gmail.com> 3.4.2-5
+- Fix for LLDB
+
 * Fri Jan 02 2015 Dave Johansen <davejohansen@gmail.com> 3.4.2-4
 - Adding X_SCLS for turning on devtoolset use at runtime
 
