@@ -304,7 +304,9 @@ mv lldb-%{version_base} tools/lldb
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
+%if %{with lldb}
 %patch6 -p1
+%endif
 
 # fix library paths
 sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' ./configure

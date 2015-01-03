@@ -1,5 +1,5 @@
---- a/tools/lldb/scripts/Python/finish-swig-Python-LLDB.sh	2014-02-10 18:35:27.913085487 +0100
-+++ b/tools/lldb/scripts/Python/finish-swig-Python-LLDB.sh	2014-02-10 17:54:59.359789538 +0100
+--- a/tools/lldb/scripts/Python/finish-swig-Python-LLDB.sh
++++ b/tools/lldb/scripts/Python/finish-swig-Python-LLDB.sh
 @@ -118,6 +118,8 @@
      echo "Python files will be put in ${framework_python_dir}"
  fi
