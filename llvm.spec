@@ -49,7 +49,7 @@ Obsoletes: pure <= 0.55
 
 Name:           llvm
 Version:        %{version_base}.2
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -75,6 +75,7 @@ Patch3:         0003-amazon-triples.patch
 Patch4:         0004-devtoolset.patch
 Patch5:         0005-scan-build-dir.patch
 Patch6:         0006-fix-python-package-installation.patch
+Patch7:         0007-rhel-detection.patch
 
 BuildRequires:  bison
 BuildRequires:  chrpath
@@ -307,6 +308,7 @@ mv lldb-%{version_base} tools/lldb
 %if %{with lldb}
 %patch6 -p1
 %endif
+%patch7 -p1
 
 # fix library paths
 sed -i 's|/lib /usr/lib $lt_ld_extra|%{_libdir} $lt_ld_extra|' ./configure
@@ -676,6 +678,9 @@ exit 0
 %endif
 
 %changelog
+* Thu Jan 29 2015 Dave Johansen <davejohansen@gmail.com> 3.4.2-6
+- Fix for RHEL detection
+
 * Fri Jan 02 2015 Dave Johansen <davejohansen@gmail.com> 3.4.2-5
 - Fix for LLDB
 

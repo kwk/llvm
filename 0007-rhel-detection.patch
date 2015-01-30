@@ -1,0 +1,65 @@
+--- a/tools/clang/lib/Driver/ToolChains.cpp	2014-04-26 01:38:13.000000000 +0200
++++ b/tools/clang/lib/Driver/ToolChains.cpp	2014-12-08 23:57:22.467764790 +0100
+@@ -2175,6 +2180,7 @@
+   RHEL4,
+   RHEL5,
+   RHEL6,
++  RHEL7,
+   Fedora,
+   OpenSUSE,
+   UbuntuHardy,
+@@ -2194,7 +2200,7 @@
+ };
+ 
+ static bool IsRedhat(enum Distro Distro) {
+-  return Distro == Fedora || (Distro >= RHEL4 && Distro <= RHEL6);
++  return Distro == Fedora || (Distro >= RHEL4 && Distro <= RHEL7);
+ }
+ 
+ static bool IsOpenSUSE(enum Distro Distro) {
+@@ -2233,22 +2239,32 @@
+           .Case("saucy", UbuntuSaucy)
+           .Case("trusty", UbuntuTrusty)
+           .Default(UnknownDistro);
+-    return Version;
++    if (Version != UnknownDistro)
++		return Version;
+   }
+ 
+   if (!llvm::MemoryBuffer::getFile("/etc/redhat-release", File)) {
+     StringRef Data = File.get()->getBuffer();
+     if (Data.startswith("Fedora release"))
+       return Fedora;
+-    else if (Data.startswith("Red Hat Enterprise Linux") &&
++    else if ((Data.startswith("Red Hat Enterprise Linux") ||
++              Data.startswith("CentOS") ||
++              Data.startswith("Scientific Linux")) &&
++             Data.find("release 7") != StringRef::npos)
++      return RHEL7;
++    else if ((Data.startswith("Red Hat Enterprise Linux") ||
++              Data.startswith("CentOS") ||
++             Data.startswith("Scientific Linux")) &&
+              Data.find("release 6") != StringRef::npos)
+       return RHEL6;
+     else if ((Data.startswith("Red Hat Enterprise Linux") ||
+-              Data.startswith("CentOS")) &&
++              Data.startswith("CentOS") ||
++              Data.startswith("Scientific Linux")) &&
+              Data.find("release 5") != StringRef::npos)
+       return RHEL5;
+     else if ((Data.startswith("Red Hat Enterprise Linux") ||
+-              Data.startswith("CentOS")) &&
++              Data.startswith("CentOS") ||
++              Data.startswith("Scientific Linux")) &&
+              Data.find("release 4") != StringRef::npos)
+       return RHEL4;
+     return UnknownDistro;
+@@ -2424,7 +2440,7 @@
+       ExtraOpts.push_back("--hash-style=both");
+   }
+ 
+-  if (IsRedhat(Distro))
++  if (Distro == Fedora || Distro == RHEL7)
+     ExtraOpts.push_back("--no-add-needed");
+ 
+   if (Distro == DebianSqueeze || Distro == DebianWheezy ||
