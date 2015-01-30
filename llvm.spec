@@ -60,9 +60,7 @@ URL:            http://llvm.org/
 Source0:        %{downloadurl}/llvm-%{version}%{?prerel}.src.tar.gz
 Source1:        %{downloadurl}/cfe-%{version}%{?prerel}.src.tar.gz
 Source2:        %{downloadurl_base}/compiler-rt-%{version_base}%{?prerel}.src.tar.gz
-%if %{with lldb}
 Source3:        %{downloadurl_base}/lldb-%{version_base}%{?prerel}.src.tar.gz
-%endif
 
 # multilib fixes
 Source10:       llvm-Config-config.h
