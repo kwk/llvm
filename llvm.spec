@@ -49,7 +49,7 @@ Obsoletes: pure <= 0.55
 
 Name:           llvm
 Version:        %{version_base}.2
-Release:        6%{?dist}
+Release:        7%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -676,6 +676,9 @@ exit 0
 %endif
 
 %changelog
+* Sat Mar 21 2015 Dave Johansen <davejohansen@gmail.com> 3.4.2-7
+- Rebuild for ocaml 4.01.1
+
 * Thu Jan 29 2015 Dave Johansen <davejohansen@gmail.com> 3.4.2-6
 - Fix for RHEL detection
 
