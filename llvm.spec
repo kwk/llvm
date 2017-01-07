@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.8.1
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -18,6 +18,9 @@ Source100:	llvm-config.h
 
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
+
+# backport D18644 [SystemZ] Support ATOMIC_FENCE
+Patch1:		llvm-d18644-systemz-atomic-fence.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -70,6 +73,7 @@ Static libraries for the LLVM compiler infrastructure.
 %prep
 %setup -q -n %{name}-%{version}.src
 %patch0 -p1 -b .s390
+%patch1 -p2 -b .s390-fence
 
 %build
 mkdir -p _build
@@ -185,6 +189,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Sat Jan 07 2017 Josh Stone <jistone@redhat.com> - 3.8.1-2
+- Support s390x atomic fence
+
 * Wed Jul 13 2016 Adam Jackson <ajax@redhat.com> - 3.8.1-1
 - llvm 3.8.1
 - Add mips target
