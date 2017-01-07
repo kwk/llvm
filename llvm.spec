@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.9.1
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -157,6 +157,7 @@ cd _build
 	-DLLVM_BUILD_EXTERNAL_COMPILER_RT:BOOL=ON \
 	-DLLVM_INSTALL_TOOLCHAIN_ONLY:BOOL=OFF \
 	\
+	-DSPHINX_WARNINGS_AS_ERRORS=OFF \
 	-DSPHINX_EXECUTABLE=%{_bindir}/sphinx-build-3
 
 make %{?_smp_mflags}
@@ -213,6 +214,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Thu Feb 23 2017 Josh Stone <jistone@redhat.com> - 3.9.1-2
+- disable sphinx warnings-as-errors
+
 * Fri Feb 10 2017 Orion Poplawski <orion@cora.nwra.com> - 3.9.1-1
 - llvm 3.9.1
 
