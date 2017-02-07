@@ -6,8 +6,8 @@
 %endif
 
 Name:		llvm
-Version:	3.9.0
-Release:	8%{?dist}
+Version:	3.9.1
+Release:	1%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -25,11 +25,12 @@ Patch3:		0001-fix-docs-3.patch
 Patch4:		0001-docs-fix-cmake-code-block-warning.patch
 # backport from upstream to fix lldb out of tree
 Patch5:		0001-cmake-Install-CheckAtomic.cmake-needed-by-lldb.patch
+# Upstream patch to fix doc build
+# http://llvm.org/viewvc/llvm-project?view=revision&revision=294646
+Patch6:		llvm-r294646.patch
 
 # backports cribbed from https://github.com/rust-lang/llvm/
 Patch47:	rust-lang-llvm-pr47.patch
-Patch48:	rust-lang-llvm-pr48.patch
-Patch51:	rust-lang-llvm-pr51.patch
 Patch53:	rust-lang-llvm-pr53.patch
 Patch54:	rust-lang-llvm-pr54.patch
 Patch55:	rust-lang-llvm-pr55.patch
@@ -91,9 +92,8 @@ Static libraries for the LLVM compiler infrastructure.
 %patch3 -p1 -b .docs3
 %patch4 -p1 -b .docs4
 %patch5 -p1 -b .lldbfix
+%patch6 -p0 -b .doc-lit
 %patch47 -p1 -b .rust47
-%patch48 -p1 -b .rust48
-%patch51 -p1 -b .rust51
 %patch53 -p1 -b .rust53
 %patch54 -p1 -b .rust54
 %patch55 -p1 -b .rust55
@@ -213,6 +213,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Fri Feb 10 2017 Orion Poplawski <orion@cora.nwra.com> - 3.9.1-1
+- llvm 3.9.1
+
 * Fri Feb 10 2017 Fedora Release Engineering <releng@fedoraproject.org> - 3.9.0-8
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_26_Mass_Rebuild
 
