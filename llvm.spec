@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.9.0
-Release:	7%{?dist}
+Release:	8%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -213,6 +213,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Fri Feb 10 2017 Fedora Release Engineering <releng@fedoraproject.org> - 3.9.0-8
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_26_Mass_Rebuild
+
 * Tue Nov 29 2016 Josh Stone <jistone@redhat.com> - 3.9.0-7
 - Apply backports from rust-lang/llvm#55, #57
 
