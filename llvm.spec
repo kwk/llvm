@@ -6,8 +6,8 @@
 %endif
 
 Name:		llvm
-Version:	3.8.1
-Release:	2%{?dist}
+Version:	3.9.1
+Release:	1%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -16,11 +16,24 @@ Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}.src.tar.xz
 
 Source100:	llvm-config.h
 
-# recognize s390 as SystemZ when configuring build
-Patch0:		llvm-3.7.1-cmake-s390.patch
+Patch1:		0001-This-code-block-breaks-the-docs-build-http-lab.llvm..patch
+Patch2:		0001-fix-docs-2.patch
+Patch3:		0001-fix-docs-3.patch
+Patch4:		0001-docs-fix-cmake-code-block-warning.patch
+# backport from upstream to fix lldb out of tree
+Patch5:		0001-cmake-Install-CheckAtomic.cmake-needed-by-lldb.patch
+# Upstream patch to fix doc build
+# http://llvm.org/viewvc/llvm-project?view=revision&revision=294646
+Patch6:		llvm-r294646.patch
+# This fix caused regressions
+Patch7:		0001-Revert-Merging-r280589.patch
 
-# backport D18644 [SystemZ] Support ATOMIC_FENCE
-Patch1:		llvm-d18644-systemz-atomic-fence.patch
+# backports cribbed from https://github.com/rust-lang/llvm/
+Patch47:	rust-lang-llvm-pr47.patch
+Patch53:	rust-lang-llvm-pr53.patch
+Patch54:	rust-lang-llvm-pr54.patch
+Patch55:	rust-lang-llvm-pr55.patch
+Patch57:	rust-lang-llvm-pr57.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -72,8 +85,18 @@ Static libraries for the LLVM compiler infrastructure.
 
 %prep
 %setup -q -n %{name}-%{version}.src
-%patch0 -p1 -b .s390
-%patch1 -p2 -b .s390-fence
+%patch1 -p1 -b .sphinx
+%patch2 -p1 -b .docs2
+%patch3 -p1 -b .docs3
+%patch4 -p1 -b .docs4
+%patch5 -p1 -b .lldbfix
+%patch6 -p0 -b .doc-lit
+%patch7 -p1 -b .amdfix
+%patch47 -p1 -b .rust47
+%patch53 -p1 -b .rust53
+%patch54 -p1 -b .rust54
+%patch55 -p1 -b .rust55
+%patch57 -p1 -b .rust57
 
 %build
 mkdir -p _build
@@ -99,7 +122,7 @@ cd _build
 	-DLLVM_LIBDIR_SUFFIX= \
 %endif
 	\
-	-DLLVM_TARGETS_TO_BUILD="X86;AMDGPU;PowerPC;NVPTX;SystemZ;AArch64;ARM;Mips;BPF;CppBackend" \
+	-DLLVM_TARGETS_TO_BUILD="X86;AMDGPU;PowerPC;NVPTX;SystemZ;AArch64;ARM;Mips;BPF" \
 	-DLLVM_ENABLE_LIBCXX:BOOL=OFF \
 	-DLLVM_ENABLE_ZLIB:BOOL=ON \
 	-DLLVM_ENABLE_FFI:BOOL=ON \
@@ -172,7 +195,7 @@ make check-all || :
 %if %{with gold}
 %{_libdir}/LLVMgold.so
 %endif
-%{_libdir}/libLLVM-3.8*.so
+%{_libdir}/libLLVM-3.9*.so
 %{_libdir}/libLTO.so
 
 %files devel
@@ -181,7 +204,7 @@ make check-all || :
 %{_includedir}/llvm
 %{_includedir}/llvm-c
 %{_libdir}/libLLVM.so
-%{_datadir}/llvm/cmake
+%{_libdir}/cmake/llvm
 
 %files doc
 %doc %{_pkgdocdir}/html
@@ -190,6 +213,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Wed Mar 01 2017 Dave Airlie <airlied@redhat.com> - 3.9.1-1
+- llvm 3.9.1 (master merge)
+
 * Sat Jan 07 2017 Josh Stone <jistone@redhat.com> - 3.8.1-2
 - Support s390x atomic fence
 
