@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.9.1
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -28,6 +28,8 @@ Patch5:		0001-cmake-Install-CheckAtomic.cmake-needed-by-lldb.patch
 # Upstream patch to fix doc build
 # http://llvm.org/viewvc/llvm-project?view=revision&revision=294646
 Patch6:		llvm-r294646.patch
+# This fix caused regressions
+Patch7:		0001-Revert-Merging-r280589.patch
 
 # backports cribbed from https://github.com/rust-lang/llvm/
 Patch47:	rust-lang-llvm-pr47.patch
@@ -93,6 +95,7 @@ Static libraries for the LLVM compiler infrastructure.
 %patch4 -p1 -b .docs4
 %patch5 -p1 -b .lldbfix
 %patch6 -p0 -b .doc-lit
+%patch7 -p1 -b .amdfix
 %patch47 -p1 -b .rust47
 %patch53 -p1 -b .rust53
 %patch54 -p1 -b .rust54
@@ -214,6 +217,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Wed Mar 01 2017 Dave Airlie <airlied@redhat.com> - 3.9.1-3
+- revert upstream radeonsi breaking change.
+
 * Thu Feb 23 2017 Josh Stone <jistone@redhat.com> - 3.9.1-2
 - disable sphinx warnings-as-errors
 
