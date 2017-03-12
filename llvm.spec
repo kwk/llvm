@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.9.1
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -30,6 +30,8 @@ Patch5:		0001-cmake-Install-CheckAtomic.cmake-needed-by-lldb.patch
 Patch6:		llvm-r294646.patch
 # This fix caused regressions
 Patch7:		0001-Revert-Merging-r280589.patch
+# https://reviews.llvm.org/D27609
+Patch8:		0001-Fix-R_AARCH64_MOVW_UABS_G3-relocation.patch
 
 # backports cribbed from https://github.com/rust-lang/llvm/
 Patch47:	rust-lang-llvm-pr47.patch
@@ -96,6 +98,7 @@ Static libraries for the LLVM compiler infrastructure.
 %patch5 -p1 -b .lldbfix
 %patch6 -p0 -b .doc-lit
 %patch7 -p1 -b .amdfix
+%patch8 -p2 -b .arm64
 %patch47 -p1 -b .rust47
 %patch53 -p1 -b .rust53
 %patch54 -p1 -b .rust54
@@ -217,6 +220,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Sun Mar 12 2017 Peter Robinson <pbrobinson@fedoraproject.org> 3.9.1-4
+- Fix missing mask on relocation for aarch64 (rhbz 1429050)
+
 * Wed Mar 01 2017 Dave Airlie <airlied@redhat.com> - 3.9.1-3
 - revert upstream radeonsi breaking change.
 
