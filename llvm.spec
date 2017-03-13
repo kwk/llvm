@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.9.1
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -104,6 +104,13 @@ Static libraries for the LLVM compiler infrastructure.
 %patch54 -p1 -b .rust54
 %patch55 -p1 -b .rust55
 %patch57 -p1 -b .rust57
+
+%ifarch armv7hl
+
+# These tests are marked as XFAIL, but they still run and hang on ARM.
+for f in `grep -Rl 'XFAIL.\+arm' test/ExecutionEngine `; do  rm $f; done
+
+%endif
 
 %build
 mkdir -p _build
@@ -220,6 +227,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Mon Mar 13 2017 Tom Stellard <tstellar@redhat.com> - 3.9.1-5
+- Disable failing tests on ARM.
+
 * Sun Mar 12 2017 Peter Robinson <pbrobinson@fedoraproject.org> 3.9.1-4
 - Fix missing mask on relocation for aarch64 (rhbz 1429050)
 
