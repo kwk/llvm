@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.9.1
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -27,6 +27,8 @@ Patch5:		0001-cmake-Install-CheckAtomic.cmake-needed-by-lldb.patch
 Patch6:		llvm-r294646.patch
 # This fix caused regressions
 Patch7:		0001-Revert-Merging-r280589.patch
+# https://reviews.llvm.org/D27609
+Patch8:		0001-Fix-R_AARCH64_MOVW_UABS_G3-relocation.patch
 
 # backports cribbed from https://github.com/rust-lang/llvm/
 Patch47:	rust-lang-llvm-pr47.patch
@@ -92,11 +94,19 @@ Static libraries for the LLVM compiler infrastructure.
 %patch5 -p1 -b .lldbfix
 %patch6 -p0 -b .doc-lit
 %patch7 -p1 -b .amdfix
+%patch8 -p2 -b .arm64
 %patch47 -p1 -b .rust47
 %patch53 -p1 -b .rust53
 %patch54 -p1 -b .rust54
 %patch55 -p1 -b .rust55
 %patch57 -p1 -b .rust57
+
+%ifarch armv7hl
+
+# These tests are marked as XFAIL, but they still run and hang on ARM.
+for f in `grep -Rl 'XFAIL.\+arm' test/ExecutionEngine `; do  rm $f; done
+
+%endif
 
 %build
 mkdir -p _build
@@ -213,6 +223,10 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Fri Mar 17 2017 Peter Robinson <pbrobinson@fedoraproject.org> 3.9.1-2
+- Fix missing mask on relocation for aarch64 (rhbz 1429050)
+- Disable failing tests on ARM.
+
 * Wed Mar 01 2017 Dave Airlie <airlied@redhat.com> - 3.9.1-1
 - llvm 3.9.1 (master merge)
 
