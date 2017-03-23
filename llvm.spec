@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.9.1
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -59,8 +59,8 @@ tools as well as libraries with equivalent functionality.
 %package devel
 Summary:	Libraries and header files for LLVM
 Requires:	%{name}%{?_isa} = %{version}-%{release}
-Requires(posttrans): %{_sbindir}/alternatives
-Requires(posttrans): %{_sbindir}/alternatives
+Requires(post): %{_sbindir}/alternatives
+Requires(postun): %{_sbindir}/alternatives
 
 %description devel
 This package contains library and header files needed to develop new native
@@ -193,7 +193,9 @@ make check-all || :
 %{_sbindir}/update-alternatives --install %{_bindir}/llvm-config llvm-config %{_bindir}/llvm-config-%{__isa_bits} %{__isa_bits}
 
 %postun devel
-[ $1 -eq 0 ] && %{_sbindir}/update-alternatives --remove llvm-config %{_bindir}/llvm-config-%{__isa_bits}
+if [ $1 -eq 0 ]; then
+  %{_sbindir}/update-alternatives --remove llvm-config %{_bindir}/llvm-config-%{__isa_bits}
+fi
 
 %files
 %{_bindir}/*
@@ -225,6 +227,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Thu Aug 24 2017 tstellar@redhat.com - 3.9.1-4
+- Fix %postun step for -devel package (rhbz 1403539).
+
 * Tue Apr 18 2017 Josh Stone <jistone@redhat.com> - 3.9.1-3
 - Fix computeKnownBits for ARMISD::CMOV (rust-lang/llvm#67)
 
