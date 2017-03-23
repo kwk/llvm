@@ -6,8 +6,8 @@
 %endif
 
 Name:		llvm
-Version:	3.9.1
-Release:	6%{?dist}
+Version:	4.0.0
+Release:	1%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -18,27 +18,7 @@ Source100:	llvm-config.h
 
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
-
-Patch1:		0001-This-code-block-breaks-the-docs-build-http-lab.llvm..patch
-Patch2:		0001-fix-docs-2.patch
-Patch3:		0001-fix-docs-3.patch
-Patch4:		0001-docs-fix-cmake-code-block-warning.patch
-# backport from upstream to fix lldb out of tree
-Patch5:		0001-cmake-Install-CheckAtomic.cmake-needed-by-lldb.patch
-# Upstream patch to fix doc build
-# http://llvm.org/viewvc/llvm-project?view=revision&revision=294646
-Patch6:		llvm-r294646.patch
-# This fix caused regressions
-Patch7:		0001-Revert-Merging-r280589.patch
-# https://reviews.llvm.org/D27609
-Patch8:		0001-Fix-R_AARCH64_MOVW_UABS_G3-relocation.patch
-
-# backports cribbed from https://github.com/rust-lang/llvm/
-Patch47:	rust-lang-llvm-pr47.patch
-Patch53:	rust-lang-llvm-pr53.patch
-Patch54:	rust-lang-llvm-pr54.patch
-Patch55:	rust-lang-llvm-pr55.patch
-Patch57:	rust-lang-llvm-pr57.patch
+Patch1:		0001-CMake-Fix-pthread-handling-for-out-of-tree-builds.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -91,19 +71,7 @@ Static libraries for the LLVM compiler infrastructure.
 %prep
 %setup -q -n %{name}-%{version}.src
 %patch0 -p1 -b .s390
-%patch1 -p1 -b .sphinx
-%patch2 -p1 -b .docs2
-%patch3 -p1 -b .docs3
-%patch4 -p1 -b .docs4
-%patch5 -p1 -b .lldbfix
-%patch6 -p0 -b .doc-lit
-%patch7 -p1 -b .amdfix
-%patch8 -p2 -b .arm64
-%patch47 -p1 -b .rust47
-%patch53 -p1 -b .rust53
-%patch54 -p1 -b .rust54
-%patch55 -p1 -b .rust55
-%patch57 -p1 -b .rust57
+%patch1 -p1 -b .pthread-fix
 
 %ifarch armv7hl
 
@@ -211,8 +179,8 @@ fi
 %if %{with gold}
 %{_libdir}/LLVMgold.so
 %endif
-%{_libdir}/libLLVM-3.9*.so
-%{_libdir}/libLTO.so
+%{_libdir}/libLLVM-4.0*.so
+%{_libdir}/libLTO.so*
 
 %files devel
 %{_bindir}/llvm-config-%{__isa_bits}
@@ -229,6 +197,9 @@ fi
 %{_libdir}/*.a
 
 %changelog
+* Thu Mar 23 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-1
+- LLVM 4.0.0 Final Release
+
 * Wed Mar 22 2017 tstellar@redhat.com - 3.9.1-6
 - Fix %postun sep for -devel package.
 
