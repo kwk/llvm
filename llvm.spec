@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.9.1
-Release:	5%{?dist}
+Release:	6%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -61,8 +61,8 @@ tools as well as libraries with equivalent functionality.
 %package devel
 Summary:	Libraries and header files for LLVM
 Requires:	%{name}%{?_isa} = %{version}-%{release}
-Requires(posttrans): %{_sbindir}/alternatives
-Requires(posttrans): %{_sbindir}/alternatives
+Requires(post): %{_sbindir}/alternatives
+Requires(postun): %{_sbindir}/alternatives
 
 %description devel
 This package contains library and header files needed to develop new native
@@ -195,7 +195,9 @@ make check-all || :
 %{_sbindir}/update-alternatives --install %{_bindir}/llvm-config llvm-config %{_bindir}/llvm-config-%{__isa_bits} %{__isa_bits}
 
 %postun devel
-[ $1 -eq 0 ] && %{_sbindir}/update-alternatives --remove llvm-config %{_bindir}/llvm-config-%{__isa_bits}
+if [ $1 -eq 0 ]; then
+  %{_sbindir}/update-alternatives --remove llvm-config %{_bindir}/llvm-config-%{__isa_bits}
+fi
 
 %files
 %{_bindir}/*
@@ -227,6 +229,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Wed Mar 22 2017 tstellar@redhat.com - 3.9.1-6
+- Fix %postun sep for -devel package.
+
 * Mon Mar 13 2017 Tom Stellard <tstellar@redhat.com> - 3.9.1-5
 - Disable failing tests on ARM.
 
