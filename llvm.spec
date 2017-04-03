@@ -5,9 +5,11 @@
   %bcond_with gold
 %endif
 
+%global llvm_bindir %{_libdir}/%{name}
+
 Name:		llvm
 Version:	4.0.0
-Release:	5%{?dist}
+Release:	6%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -21,6 +23,8 @@ Patch2:		rust-lang-llvm-pr67.patch
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch4:		0001-Revert-Revert-CMake-Move-sphinx-detection-into-AddSp.patch
 Patch5:		0001-CMake-Fix-docs-llvm-man-target-when-clang-llvm-is-in.patch
+Patch6:		0001-CMake-Add-LLVM_UTILS_INSTALL_DIR-option.patch
+Patch7:		0001-CMake-Don-t-install-llvm-tblgen-twice.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -126,7 +130,8 @@ cd _build
 	-DLLVM_BUILD_EXAMPLES:BOOL=OFF \
 	\
 	-DLLVM_INCLUDE_UTILS:BOOL=ON \
-	-DLLVM_INSTALL_UTILS:BOOL=OFF \
+	-DLLVM_INSTALL_UTILS:BOOL=ON \
+	-DLLVM_UTILS_INSTALL_DIR:PATH=%{llvm_bindir} \
 	\
 	-DLLVM_INCLUDE_DOCS:BOOL=ON \
 	-DLLVM_BUILD_DOCS:BOOL=ON \
@@ -170,6 +175,7 @@ fi
 
 %files
 %{_bindir}/*
+%{llvm_bindir}
 %{_mandir}/man1/*.1.*
 %exclude %{_bindir}/llvm-config-%{__isa_bits}
 %exclude %{_mandir}/man1/llvm-config.1.*
@@ -200,6 +206,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Thu Jun 15 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-6
+- Install llvm utils
+
 * Thu Jun 08 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-5
 - Fix docs-llvm-man target
 

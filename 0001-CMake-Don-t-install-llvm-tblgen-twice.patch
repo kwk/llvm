@@ -1,0 +1,38 @@
+From a46be0c0b5cb17d0e2eeb19a180c583df63ee766 Mon Sep 17 00:00:00 2001
+From: Tom Stellard <tstellar@redhat.com>
+Date: Mon, 6 Mar 2017 15:51:00 +0000
+Subject: [PATCH] CMake: Don't install llvm-tblgen twice
+
+Summary:
+The add_tablegen macros defines its own install target, and it was also calling
+add_llvm_utility which adds another install target.
+
+Configuring with -DLLVM_TOOLS_INSTALL_DIR set to something other than
+'bin' along with -DLLVM_INSTALL_UTILS=ON was causing llvm-tablgen
+to be installed to two separate directories.
+
+Reviewers: beanz, hans
+
+Subscribers: llvm-commits, mgorny
+
+Differential Revision: https://reviews.llvm.org/D30656
+---
+ cmake/modules/TableGen.cmake | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cmake/modules/TableGen.cmake b/cmake/modules/TableGen.cmake
+index 0c00bf5..da0858e 100644
+--- a/cmake/modules/TableGen.cmake
++++ b/cmake/modules/TableGen.cmake
+@@ -99,7 +99,7 @@ macro(add_tablegen target project)
+     set(LLVM_ENABLE_OBJLIB ON)
+   endif()
+ 
+-  add_llvm_utility(${target} ${ARGN})
++  add_llvm_executable(${target} DISABLE_LLVM_LINK_LLVM_DYLIB ${ARGN})
+   set(LLVM_LINK_COMPONENTS ${${target}_OLD_LLVM_LINK_COMPONENTS})
+ 
+   set(${project}_TABLEGEN "${target}" CACHE
+-- 
+2.9.3
+
