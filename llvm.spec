@@ -7,14 +7,12 @@
 
 Name:		llvm
 Version:	4.0.0
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
 URL:		http://llvm.org
 Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}.src.tar.xz
-
-Source100:	llvm-config.h
 
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
@@ -25,6 +23,7 @@ BuildRequires:	zlib-devel
 BuildRequires:  libffi-devel
 BuildRequires:	ncurses-devel
 BuildRequires:	python3-sphinx
+BuildRequires:	multilib-rpm-config
 %if %{with gold}
 BuildRequires:  binutils-devel
 %endif
@@ -69,9 +68,7 @@ Summary:	LLVM static libraries
 Static libraries for the LLVM compiler infrastructure.
 
 %prep
-%setup -q -n %{name}-%{version}.src
-%patch0 -p1 -b .s390
-%patch1 -p1 -b .pthread-fix
+%autosetup -n %{name}-%{version}.src -p1
 
 %ifarch armv7hl
 
@@ -149,8 +146,8 @@ make install DESTDIR=%{buildroot}
 
 # fix multi-lib
 mv -v %{buildroot}%{_bindir}/llvm-config{,-%{__isa_bits}}
-mv -v %{buildroot}%{_includedir}/llvm/Config/llvm-config{,-%{__isa_bits}}.h
-install -m 0644 %{SOURCE100} %{buildroot}%{_includedir}/llvm/Config/llvm-config.h
+
+%multilib_fix_c_header --file %{_includedir}/llvm/Config/llvm-config.h
 
 %check
 cd _build
@@ -197,6 +194,9 @@ fi
 %{_libdir}/*.a
 
 %changelog
+* Mon Apr 03 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-2
+- Simplify spec with rpm macros.
+
 * Thu Mar 23 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-1
 - LLVM 4.0.0 Final Release
 
