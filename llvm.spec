@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.8.1
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -21,6 +21,9 @@ Patch0:		llvm-3.7.1-cmake-s390.patch
 
 # backport D18644 [SystemZ] Support ATOMIC_FENCE
 Patch1:		llvm-d18644-systemz-atomic-fence.patch
+
+# backports cribbed from https://github.com/rust-lang/llvm/
+Patch67:	rust-lang-llvm-pr67.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -74,6 +77,7 @@ Static libraries for the LLVM compiler infrastructure.
 %setup -q -n %{name}-%{version}.src
 %patch0 -p1 -b .s390
 %patch1 -p2 -b .s390-fence
+%patch67 -p1 -b .rust67
 
 %build
 mkdir -p _build
@@ -190,6 +194,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Tue Apr 18 2017 Josh Stone <jistone@redhat.com> - 3.8.1-3
+- Fix computeKnownBits for ARMISD::CMOV (rust-lang/llvm#67)
+
 * Sat Jan 07 2017 Josh Stone <jistone@redhat.com> - 3.8.1-2
 - Support s390x atomic fence
 
