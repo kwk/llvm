@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.9.1
-Release:	5%{?dist}
+Release:	6%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -39,6 +39,7 @@ Patch53:	rust-lang-llvm-pr53.patch
 Patch54:	rust-lang-llvm-pr54.patch
 Patch55:	rust-lang-llvm-pr55.patch
 Patch57:	rust-lang-llvm-pr57.patch
+Patch67:	rust-lang-llvm-pr67.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -104,6 +105,7 @@ Static libraries for the LLVM compiler infrastructure.
 %patch54 -p1 -b .rust54
 %patch55 -p1 -b .rust55
 %patch57 -p1 -b .rust57
+%patch67 -p1 -b .rust67
 
 %ifarch armv7hl
 
@@ -227,6 +229,9 @@ make check-all || :
 %{_libdir}/*.a
 
 %changelog
+* Tue Apr 18 2017 Josh Stone <jistone@redhat.com> - 3.9.1-6
+- Fix computeKnownBits for ARMISD::CMOV (rust-lang/llvm#67)
+
 * Mon Mar 13 2017 Tom Stellard <tstellar@redhat.com> - 3.9.1-5
 - Disable failing tests on ARM.
 
