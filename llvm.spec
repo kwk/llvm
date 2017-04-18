@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	4.0.0
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -17,6 +17,7 @@ Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}.src.tar.xz
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
 Patch1:		0001-CMake-Fix-pthread-handling-for-out-of-tree-builds.patch
+Patch2:		rust-lang-llvm-pr67.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -194,6 +195,9 @@ fi
 %{_libdir}/*.a
 
 %changelog
+* Tue Apr 18 2017 Josh Stone <jistone@redhat.com> - 4.0.0-3
+- Fix computeKnownBits for ARMISD::CMOV (rust-lang/llvm#67)
+
 * Mon Apr 03 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-2
 - Simplify spec with rpm macros.
 
