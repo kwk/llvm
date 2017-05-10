@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	4.0.0
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -18,6 +18,7 @@ Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}.src.tar.xz
 Patch0:		llvm-3.7.1-cmake-s390.patch
 Patch1:		0001-CMake-Fix-pthread-handling-for-out-of-tree-builds.patch
 Patch2:		rust-lang-llvm-pr67.patch
+Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -187,14 +188,19 @@ fi
 %{_includedir}/llvm-c
 %{_libdir}/libLLVM.so
 %{_libdir}/cmake/llvm
+%exclude %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %files doc
 %doc %{_pkgdocdir}/html
 
 %files static
 %{_libdir}/*.a
+%{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Mon May 01 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-4
+- Make cmake files no longer depend on static libs (rhbz 1388200)
+
 * Tue Apr 18 2017 Josh Stone <jistone@redhat.com> - 4.0.0-3
 - Fix computeKnownBits for ARMISD::CMOV (rust-lang/llvm#67)
 
