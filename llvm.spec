@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	4.0.0
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -19,6 +19,8 @@ Patch0:		llvm-3.7.1-cmake-s390.patch
 Patch1:		0001-CMake-Fix-pthread-handling-for-out-of-tree-builds.patch
 Patch2:		rust-lang-llvm-pr67.patch
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
+Patch4:		0001-Revert-Revert-CMake-Move-sphinx-detection-into-AddSp.patch
+Patch5:		0001-CMake-Fix-docs-llvm-man-target-when-clang-llvm-is-in.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -198,6 +200,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Thu Jun 08 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-5
+- Fix docs-llvm-man target
+
 * Mon May 01 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-4
 - Make cmake files no longer depend on static libs (rhbz 1388200)
 
