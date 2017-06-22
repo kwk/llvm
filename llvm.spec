@@ -8,8 +8,8 @@
 %global llvm_bindir %{_libdir}/%{name}
 
 Name:		llvm
-Version:	4.0.0
-Release:	6%{?dist}
+Version:	4.0.1
+Release:	1%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -18,13 +18,11 @@ Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}.src.tar.xz
 
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
-Patch1:		0001-CMake-Fix-pthread-handling-for-out-of-tree-builds.patch
 Patch2:		rust-lang-llvm-pr67.patch
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch4:		0001-Revert-Revert-CMake-Move-sphinx-detection-into-AddSp.patch
 Patch5:		0001-CMake-Fix-docs-llvm-man-target-when-clang-llvm-is-in.patch
 Patch6:		0001-CMake-Add-LLVM_UTILS_INSTALL_DIR-option.patch
-Patch7:		0001-CMake-Don-t-install-llvm-tblgen-twice.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -206,6 +204,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Wed Jun 21 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-1
+- 4.0.1 Release
+
 * Thu Jun 15 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-6
 - Install llvm utils
 
