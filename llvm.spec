@@ -5,9 +5,11 @@
   %bcond_with gold
 %endif
 
+%global llvm_bindir %{_libdir}/%{name}
+
 Name:		llvm
-Version:	4.0.0
-Release:	2%{?dist}
+Version:	4.0.1
+Release:	1%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -16,8 +18,11 @@ Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}.src.tar.xz
 
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
-Patch1:		0001-CMake-Fix-pthread-handling-for-out-of-tree-builds.patch
-Patch67:	rust-lang-llvm-pr67.patch
+Patch2:		rust-lang-llvm-pr67.patch
+Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
+Patch4:		0001-Revert-Revert-CMake-Move-sphinx-detection-into-AddSp.patch
+Patch5:		0001-CMake-Fix-docs-llvm-man-target-when-clang-llvm-is-in.patch
+Patch6:		0001-CMake-Add-LLVM_UTILS_INSTALL_DIR-option.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -123,7 +128,8 @@ cd _build
 	-DLLVM_BUILD_EXAMPLES:BOOL=OFF \
 	\
 	-DLLVM_INCLUDE_UTILS:BOOL=ON \
-	-DLLVM_INSTALL_UTILS:BOOL=OFF \
+	-DLLVM_INSTALL_UTILS:BOOL=ON \
+	-DLLVM_UTILS_INSTALL_DIR:PATH=%{llvm_bindir} \
 	\
 	-DLLVM_INCLUDE_DOCS:BOOL=ON \
 	-DLLVM_BUILD_DOCS:BOOL=ON \
@@ -167,6 +173,7 @@ fi
 
 %files
 %{_bindir}/*
+%{llvm_bindir}
 %{_mandir}/man1/*.1.*
 %exclude %{_bindir}/llvm-config-%{__isa_bits}
 %exclude %{_mandir}/man1/llvm-config.1.*
@@ -187,22 +194,39 @@ fi
 %{_includedir}/llvm-c
 %{_libdir}/libLLVM.so
 %{_libdir}/cmake/llvm
+%exclude %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %files doc
 %doc %{_pkgdocdir}/html
 
 %files static
 %{_libdir}/*.a
+%{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
-* Wed May 10 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-2
+* Wed Jun 21 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-1
+- 4.0.1 Release
+
+* Thu Jun 15 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-6
+- Install llvm utils
+
+* Thu Jun 08 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-5
+- Fix docs-llvm-man target
+
+* Mon May 01 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-4
+- Make cmake files no longer depend on static libs (rhbz 1388200)
+
+* Tue Apr 18 2017 Josh Stone <jistone@redhat.com> - 4.0.0-3
+- Fix computeKnownBits for ARMISD::CMOV (rust-lang/llvm#67)
+
+* Mon Apr 03 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-2
 - Simplify spec with rpm macros.
 
-* Wed May 10 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-1
+* Thu Mar 23 2017 Tom Stellard <tstellar@redhat.com> - 4.0.0-1
 - LLVM 4.0.0 Final Release
 
-* Tue Apr 18 2017 Josh Stone <jistone@redhat.com> - 3.9.1-6
-- Fix computeKnownBits for ARMISD::CMOV (rust-lang/llvm#67)
+* Wed Mar 22 2017 tstellar@redhat.com - 3.9.1-6
+- Fix %postun sep for -devel package.
 
 * Mon Mar 13 2017 Tom Stellard <tstellar@redhat.com> - 3.9.1-5
 - Disable failing tests on ARM.
