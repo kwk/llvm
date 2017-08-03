@@ -9,7 +9,7 @@
 
 Name:		llvm
 Version:	4.0.1
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -204,6 +204,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Thu Aug 03 2017 Fedora Release Engineering <releng@fedoraproject.org> - 4.0.1-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Binutils_Mass_Rebuild
+
 * Wed Jul 26 2017 Fedora Release Engineering <releng@fedoraproject.org> - 4.0.1-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
 
