@@ -6,10 +6,13 @@
 %endif
 
 %global llvm_bindir %{_libdir}/%{name}
+%global maj_ver 5
+%global min_ver 0
+%global patch_ver 0
 
 Name:		llvm
-Version:	4.0.1
-Release:	6%{?dist}
+Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
+Release:	1%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -18,11 +21,10 @@ Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}.src.tar.xz
 
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
-Patch2:		rust-lang-llvm-pr67.patch
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
-Patch4:		0001-Revert-Revert-CMake-Move-sphinx-detection-into-AddSp.patch
-Patch5:		0001-CMake-Fix-docs-llvm-man-target-when-clang-llvm-is-in.patch
-Patch6:		0001-CMake-Add-LLVM_UTILS_INSTALL_DIR-option.patch
+# FIXME: Symbol versioning breaks some unittests when statically linking
+# libstdc++, so we disable it for now.
+Patch4:		0001-Revert-Add-a-linker-script-to-version-LLVM-symbols.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -185,6 +187,7 @@ fi
 %{_mandir}/man1/*.1.*
 %exclude %{_bindir}/llvm-config-%{__isa_bits}
 %exclude %{_mandir}/man1/llvm-config.1.*
+%{_datadir}/opt-viewer
 
 %files libs
 %{_libdir}/BugpointPasses.so
@@ -192,7 +195,7 @@ fi
 %if %{with gold}
 %{_libdir}/LLVMgold.so
 %endif
-%{_libdir}/libLLVM-4.0*.so
+%{_libdir}/libLLVM-%{maj_ver}.%{min_ver}*.so
 %{_libdir}/libLTO.so*
 
 %files devel
@@ -212,6 +215,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Mon Sep 25 2017 Tom Stellard <tstellar@redhat.com> - 5.0.0-1
+- 5.0.0 Release
+
 * Mon Sep 18 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-6
 - Add Requires: libedit-devel for llvm-devel
 
