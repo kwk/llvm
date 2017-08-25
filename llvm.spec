@@ -9,7 +9,7 @@
 
 Name:		llvm
 Version:	4.0.1
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -34,6 +34,8 @@ BuildRequires:	multilib-rpm-config
 BuildRequires:  binutils-devel
 %endif
 BuildRequires:  libstdc++-static
+# Enable extra functionality when run the LLVM JIT under valgrind.
+BuildRequires:  valgrind-devel
 
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
@@ -204,6 +206,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Fri Aug 25 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-4
+- Enable extra functionality when run the LLVM JIT under valgrind.
+
 * Thu Aug 03 2017 Fedora Release Engineering <releng@fedoraproject.org> - 4.0.1-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Binutils_Mass_Rebuild
 
