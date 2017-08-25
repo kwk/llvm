@@ -7,7 +7,7 @@
 
 Name:		llvm
 Version:	3.9.1
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -29,6 +29,8 @@ Patch6:		llvm-r294646.patch
 Patch7:		0001-Revert-Merging-r280589.patch
 # https://reviews.llvm.org/D27609
 Patch8:		0001-Fix-R_AARCH64_MOVW_UABS_G3-relocation.patch
+# rhbz1435545
+Patch9:		0001-X86-Change-getHostCPUName-to-report-Intel-model-0x4e.patch
 
 # backports cribbed from https://github.com/rust-lang/llvm/
 Patch47:	rust-lang-llvm-pr47.patch
@@ -227,6 +229,9 @@ fi
 %{_libdir}/*.a
 
 %changelog
+* Fri Aug 25 2017 Tom Stellard <tstellar@redhat.com> - 3.9.1-5
+- Backport r291084 (rhbz1435545)
+
 * Thu Aug 24 2017 tstellar@redhat.com - 3.9.1-4
 - Fix %postun step for -devel package (rhbz 1403539).
 
