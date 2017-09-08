@@ -9,7 +9,7 @@
 
 Name:		llvm
 Version:	4.0.1
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -36,6 +36,8 @@ BuildRequires:  binutils-devel
 BuildRequires:  libstdc++-static
 # Enable extra functionality when run the LLVM JIT under valgrind.
 BuildRequires:  valgrind-devel
+# LLVM's LineEditor library will use libedit if it is available.
+BuildRequires:  libedit-devel
 
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
@@ -206,6 +208,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Fri Sep 08 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-5
+- Enable libedit backend for LineEditor API
+
 * Fri Aug 25 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-4
 - Enable extra functionality when run the LLVM JIT under valgrind.
 
