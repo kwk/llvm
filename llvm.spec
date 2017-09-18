@@ -9,7 +9,7 @@
 
 Name:		llvm
 Version:	4.0.1
-Release:	5%{?dist}
+Release:	6%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -50,6 +50,10 @@ tools as well as libraries with equivalent functionality.
 %package devel
 Summary:	Libraries and header files for LLVM
 Requires:	%{name}%{?_isa} = %{version}-%{release}
+# The installed LLVM cmake files will add -ledit to the linker flags for any
+# app that requires the libLLVMLineEditor, so we need to make sure
+# libedit-devel is available.
+Requires:	libedit-devel
 Requires(post): %{_sbindir}/alternatives
 Requires(postun): %{_sbindir}/alternatives
 
@@ -208,6 +212,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Mon Sep 18 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-6
+- Add Requires: libedit-devel for llvm-devel
+
 * Fri Sep 08 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-5
 - Enable libedit backend for LineEditor API
 
