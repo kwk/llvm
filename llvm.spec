@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	1%{?dist}
+Release:	3%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -102,10 +102,20 @@ cd _build
 %global optflags %(echo %{optflags} | sed 's/-g /-g1 /')
 %endif
 
+# There is not enough memory on the ARM builders to build with debuginfo.
+# We also enable less targets on ARM to save memory.
+%ifarch %{arm}
+%global debug_package %{nil}
+%endif
+
 # force off shared libs as cmake macros turns it on.
 %cmake .. \
 	-DBUILD_SHARED_LIBS:BOOL=OFF \
+%ifarch %{arm}
+	-DCMAKE_BUILD_TYPE=Release \
+%else
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+%endif
 	-DCMAKE_SHARED_LINKER_FLAGS="-Wl,-Bsymbolic -static-libstdc++" \
 %ifarch s390
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
@@ -117,7 +127,11 @@ cd _build
 	-DLLVM_LIBDIR_SUFFIX= \
 %endif
 	\
+%ifarch %{arm}
+	-DLLVM_TARGETS_TO_BUILD="X86;AMDGPU;NVPTX;AArch64;ARM;BPF" \
+%else
 	-DLLVM_TARGETS_TO_BUILD="X86;AMDGPU;PowerPC;NVPTX;SystemZ;AArch64;ARM;Mips;BPF" \
+%endif
 	-DLLVM_ENABLE_LIBCXX:BOOL=OFF \
 	-DLLVM_ENABLE_ZLIB:BOOL=ON \
 	-DLLVM_ENABLE_FFI:BOOL=ON \
@@ -215,6 +229,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Tue Oct 10 2017 Tom Stellard <tstellar@redhat.com> - 5.0.0-2
+- Reduce memory usage on ARM by disabling debuginfo and some non-ARM targets.
+
 * Mon Sep 25 2017 Tom Stellard <tstellar@redhat.com> - 5.0.0-1
 - 5.0.0 Release
 
