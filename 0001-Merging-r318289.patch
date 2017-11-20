@@ -1,0 +1,157 @@
+From d61468959556ddc180c6c28edff476244fd0e8a6 Mon Sep 17 00:00:00 2001
+From: tstellar <tstellar@91177308-0d34-0410-b5e6-96231b3b80d8>
+Date: Fri, 17 Nov 2017 18:48:34 +0000
+Subject: [PATCH] Merging r318289:
+
+------------------------------------------------------------------------
+r318289 | jdevlieghere | 2017-11-15 02:57:05 -0800 (Wed, 15 Nov 2017) | 14 lines
+
+[DebugInfo] Fix potential CU mismatch for SubprogramScopeDIEs.
+
+In constructAbstractSubprogramScopeDIE there can be a potential mismatch
+between `this` and the CU of ContextDIE when a scope is shared between
+two DISubprograms belonging to a different CU. In that case, `this` is
+the CU that was specified in the IR, but the CU of ContextDIE is that of
+the first subprogram that was emitted. This patch fixes the mismatch by
+looking up the CU of ContextDIE, and switching to use that.
+
+This fixes PR35212 (https://bugs.llvm.org/show_bug.cgi?id=35212)
+
+Patch by Philip Craig!
+
+Differential revision: https://reviews.llvm.org/D39981
+------------------------------------------------------------------------
+
+git-svn-id: https://llvm.org/svn/llvm-project/llvm/branches/release_50@318542 91177308-0d34-0410-b5e6-96231b3b80d8
+---
+ lib/CodeGen/AsmPrinter/DwarfCompileUnit.cpp | 20 ++++++++----
+ lib/CodeGen/AsmPrinter/DwarfDebug.h         |  5 ++-
+ test/DebugInfo/cross-cu-scope.ll            | 50 +++++++++++++++++++++++++++++
+ 3 files changed, 67 insertions(+), 8 deletions(-)
+ create mode 100644 test/DebugInfo/cross-cu-scope.ll
+
+diff --git a/lib/CodeGen/AsmPrinter/DwarfCompileUnit.cpp b/lib/CodeGen/AsmPrinter/DwarfCompileUnit.cpp
+index 676c48f..333d14a 100644
+--- a/lib/CodeGen/AsmPrinter/DwarfCompileUnit.cpp
++++ b/lib/CodeGen/AsmPrinter/DwarfCompileUnit.cpp
+@@ -621,6 +621,7 @@ void DwarfCompileUnit::constructAbstractSubprogramScopeDIE(
+   auto *SP = cast<DISubprogram>(Scope->getScopeNode());
+ 
+   DIE *ContextDIE;
++  DwarfCompileUnit *ContextCU = this;
+ 
+   if (includeMinimalInlineScopes())
+     ContextDIE = &getUnitDie();
+@@ -631,18 +632,23 @@ void DwarfCompileUnit::constructAbstractSubprogramScopeDIE(
+   else if (auto *SPDecl = SP->getDeclaration()) {
+     ContextDIE = &getUnitDie();
+     getOrCreateSubprogramDIE(SPDecl);
+-  } else
++  } else {
+     ContextDIE = getOrCreateContextDIE(resolve(SP->getScope()));
++    // The scope may be shared with a subprogram that has already been
++    // constructed in another CU, in which case we need to construct this
++    // subprogram in the same CU.
++    ContextCU = DD->lookupCU(ContextDIE->getUnitDie());
++  }
+ 
+   // Passing null as the associated node because the abstract definition
+   // shouldn't be found by lookup.
+-  AbsDef = &createAndAddDIE(dwarf::DW_TAG_subprogram, *ContextDIE, nullptr);
+-  applySubprogramAttributesToDefinition(SP, *AbsDef);
++  AbsDef = &ContextCU->createAndAddDIE(dwarf::DW_TAG_subprogram, *ContextDIE, nullptr);
++  ContextCU->applySubprogramAttributesToDefinition(SP, *AbsDef);
+ 
+-  if (!includeMinimalInlineScopes())
+-    addUInt(*AbsDef, dwarf::DW_AT_inline, None, dwarf::DW_INL_inlined);
+-  if (DIE *ObjectPointer = createAndAddScopeChildren(Scope, *AbsDef))
+-    addDIEEntry(*AbsDef, dwarf::DW_AT_object_pointer, *ObjectPointer);
++  if (!ContextCU->includeMinimalInlineScopes())
++    ContextCU->addUInt(*AbsDef, dwarf::DW_AT_inline, None, dwarf::DW_INL_inlined);
++  if (DIE *ObjectPointer = ContextCU->createAndAddScopeChildren(Scope, *AbsDef))
++    ContextCU->addDIEEntry(*AbsDef, dwarf::DW_AT_object_pointer, *ObjectPointer);
+ }
+ 
+ DIE *DwarfCompileUnit::constructImportedEntityDIE(
+diff --git a/lib/CodeGen/AsmPrinter/DwarfDebug.h b/lib/CodeGen/AsmPrinter/DwarfDebug.h
+index 5dfe06c..78ee9a1 100644
+--- a/lib/CodeGen/AsmPrinter/DwarfDebug.h
++++ b/lib/CodeGen/AsmPrinter/DwarfDebug.h
+@@ -283,7 +283,7 @@ class DwarfDebug : public DebugHandlerBase {
+   // 0, referencing the comp_dir of all the type units that use it.
+   MCDwarfDwoLineTable SplitTypeUnitFileTable;
+   /// @}
+-  
++
+   /// True iff there are multiple CUs in this module.
+   bool SingleCU;
+   bool IsDarwin;
+@@ -562,6 +562,9 @@ public:
+   bool isLexicalScopeDIENull(LexicalScope *Scope);
+ 
+   bool hasDwarfPubSections(bool includeMinimalInlineScopes) const;
++
++  /// Find the matching DwarfCompileUnit for the given CU DIE.
++  DwarfCompileUnit *lookupCU(const DIE *Die) { return CUDieMap.lookup(Die); }
+ };
+ } // End of namespace llvm
+ 
+diff --git a/test/DebugInfo/cross-cu-scope.ll b/test/DebugInfo/cross-cu-scope.ll
+new file mode 100644
+index 0000000..7c71f27
+--- /dev/null
++++ b/test/DebugInfo/cross-cu-scope.ll
+@@ -0,0 +1,50 @@
++; RUN: %llc_dwarf %s -filetype=obj -o %t
++; RUN: llvm-dwarfdump -debug-dump=info %t | FileCheck %s
++
++; Reduced test case from PR35212. Two DISubprogram belong to a different CU but
++; share a scope. Both are declarations and end up in the scope's CU. We want to
++; check that the CU from the context DIE is used (rather than from the IR).
++; This manifests itself by the DW_base_type ending up in the second CU, rather
++; than in the first one as specified in the IR.
++
++; CHECK: DW_TAG_compile_unit
++; CHECK-NEXT: discriminator 0
++; CHECK: DW_TAG_compile_unit
++; CHECK-NEXT: discriminator 1
++; CHECK: DW_TAG_structure_type
++; CHECK-NOT: NULL
++; CHECK: DW_TAG_subprogram
++; CHECK-NOT: NULL
++; CHECK: DW_TAG_formal_parameter
++; CHECK-NOT: NULL
++; CHECK: DW_AT_type{{.*}}{[[USIZE_LABEL:0x[0-9a-f]+]]}
++; CHECK: NULL
++; CHECK: [[USIZE_LABEL]]: DW_TAG_base_type
++; CHECK-NOT: NULL
++; CHECK: DW_AT_name{{.*}}"usize"
++
++define hidden void @foo() !dbg !4 {
++  ret void, !dbg !7
++}
++
++!llvm.dbg.cu = !{!0, !2}
++!llvm.module.flags = !{!3}
++
++!0 = distinct !DICompileUnit(language: DW_LANG_Rust, file: !1, producer: "clang LLVM (rustc version 1.23.0-nightly (discriminator 0))", isOptimized: true, runtimeVersion: 0, emissionKind: FullDebug)
++!1 = !DIFile(filename: "../lib.rs", directory: "/home/alex/code/rust4/lol")
++!2 = distinct !DICompileUnit(language: DW_LANG_Rust, file: !1, producer: "clang LLVM (rustc version 1.23.0-nightly (discriminator 1))", isOptimized: true, runtimeVersion: 0, emissionKind: FullDebug)
++!3 = !{i32 2, !"Debug Info Version", i32 3}
++!4 = distinct !DISubprogram(name: "clone<alloc::string::String>", linkageName: "_ZN5alloc3vec8{{impl}}28clone<alloc::string::String>E", scope: null, file: !1, line: 1519, type: !5, isLocal: false, isDefinition: true, scopeLine: 1519, flags: DIFlagPrototyped, isOptimized: true, unit: !0, templateParams: !6, variables: !6)
++!5 = !DISubroutineType(types: !6)
++!6 = !{}
++!7 = !DILocation(line: 1612, scope: !8, inlinedAt: !11)
++!8 = distinct !DILexicalBlock(scope: !9, file: !1, line: 86, column: 12)
++!9 = distinct !DISubprogram(name: "allocate_in<alloc::string::String,alloc::heap::Heap>", linkageName: "_ZN5alloc7raw_vec8{{impl}}52allocate_in<alloc::string::String,alloc::heap::Heap>E", scope: !10, file: !1, line: 82, type: !5, isLocal: false, isDefinition: true, scopeLine: 82, flags: DIFlagPrototyped, isOptimized: true, unit: !2, templateParams: !6, variables: !6)
++!10 = distinct !DICompositeType(tag: DW_TAG_structure_type, name: "RawVec<alloc::string::String, alloc::heap::Heap>", file: !1, size: 128, align: 64, elements: !6, identifier: "5c6e4db16d2c64555e40661d70c4d81e")
++!11 = distinct !DILocation(line: 86, scope: !8, inlinedAt: !12)
++!12 = distinct !DILocation(line: 141, scope: !13, inlinedAt: !17)
++!13 = distinct !DISubprogram(name: "with_capacity<alloc::string::String>", linkageName: "_ZN5alloc7raw_vec8{{impl}}36with_capacity<alloc::string::String>E", scope: !10, file: !1, line: 140, type: !5, isLocal: false, isDefinition: true, scopeLine: 140, flags: DIFlagPrototyped, isOptimized: true, unit: !0, templateParams: !6, variables: !14)
++!14 = !{!15}
++!15 = !DILocalVariable(name: "cap", arg: 1, scope: !13, file: !1, line: 1, type: !16)
++!16 = !DIBasicType(name: "usize", size: 64, encoding: DW_ATE_unsigned)
++!17 = !DILocation(line: 1521, scope: !4)
+-- 
+1.8.3.1
+

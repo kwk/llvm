@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -25,6 +25,7 @@ Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 # FIXME: Symbol versioning breaks some unittests when statically linking
 # libstdc++, so we disable it for now.
 Patch4:		0001-Revert-Add-a-linker-script-to-version-LLVM-symbols.patch
+Patch5:		0001-Merging-r318289.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -215,6 +216,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Mon Nov 20 2017 Tom Stellard <tstellar@redhat.com> - 5.0.0-5
+- Backport debuginfo fix for rust
+
 * Fri Nov 03 2017 Tom Stellard <tstellar@redhat.com> - 5.0.0-4
 - Reduce debuginfo size for ARM
 
