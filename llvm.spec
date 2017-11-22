@@ -9,7 +9,7 @@
 
 Name:		llvm
 Version:	4.0.1
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -23,6 +23,7 @@ Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch4:		0001-Revert-Revert-CMake-Move-sphinx-detection-into-AddSp.patch
 Patch5:		0001-CMake-Fix-docs-llvm-man-target-when-clang-llvm-is-in.patch
 Patch6:		0001-CMake-Add-LLVM_UTILS_INSTALL_DIR-option.patch
+Patch7:		0001-DebugInfo-Fix-potential-CU-mismatch-for-SubprogramSc.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -204,6 +205,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Tue Nov 21 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-2
+- Backport r318289 to fix a debuginfo issue with rust.
+
 * Wed Jun 21 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-1
 - 4.0.1 Release
 
