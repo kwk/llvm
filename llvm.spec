@@ -6,10 +6,13 @@
 %endif
 
 %global llvm_bindir %{_libdir}/%{name}
+%global maj_ver 5
+%global min_ver 0
+%global patch_ver 0
 
 Name:		llvm
-Version:	4.0.1
-Release:	7%{?dist}
+Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
+Release:	5%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -18,12 +21,11 @@ Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}.src.tar.xz
 
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
-Patch2:		rust-lang-llvm-pr67.patch
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
-Patch4:		0001-Revert-Revert-CMake-Move-sphinx-detection-into-AddSp.patch
-Patch5:		0001-CMake-Fix-docs-llvm-man-target-when-clang-llvm-is-in.patch
-Patch6:		0001-CMake-Add-LLVM_UTILS_INSTALL_DIR-option.patch
-Patch7:		0001-DebugInfo-Fix-potential-CU-mismatch-for-SubprogramSc.patch
+# FIXME: Symbol versioning breaks some unittests when statically linking
+# libstdc++, so we disable it for now.
+Patch4:		0001-Revert-Add-a-linker-script-to-version-LLVM-symbols.patch
+Patch5:		0001-Merging-r318289.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -96,7 +98,7 @@ for f in `grep -Rl 'XFAIL.\+arm' test/ExecutionEngine `; do  rm $f; done
 mkdir -p _build
 cd _build
 
-%ifarch s390
+%ifarch s390 %{arm}
 # Decrease debuginfo verbosity to reduce memory consumption during final library linking
 %global optflags %(echo %{optflags} | sed 's/-g /-g1 /')
 %endif
@@ -106,7 +108,7 @@ cd _build
 	-DBUILD_SHARED_LIBS:BOOL=OFF \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DCMAKE_SHARED_LINKER_FLAGS="-Wl,-Bsymbolic -static-libstdc++" \
-%ifarch s390
+%ifarch s390 %{arm}
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 %endif
@@ -186,6 +188,7 @@ fi
 %{_mandir}/man1/*.1.*
 %exclude %{_bindir}/llvm-config-%{__isa_bits}
 %exclude %{_mandir}/man1/llvm-config.1.*
+%{_datadir}/opt-viewer
 
 %files libs
 %{_libdir}/BugpointPasses.so
@@ -193,7 +196,7 @@ fi
 %if %{with gold}
 %{_libdir}/LLVMgold.so
 %endif
-%{_libdir}/libLLVM-4.0*.so
+%{_libdir}/libLLVM-%{maj_ver}.%{min_ver}*.so
 %{_libdir}/libLTO.so*
 
 %files devel
@@ -213,8 +216,17 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
-* Tue Nov 21 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-7
-- Backport r318289 to fix a debuginfo issue with rust.
+* Mon Nov 20 2017 Tom Stellard <tstellar@redhat.com> - 5.0.0-5
+- Backport debuginfo fix for rust
+
+* Fri Nov 03 2017 Tom Stellard <tstellar@redhat.com> - 5.0.0-4
+- Reduce debuginfo size for ARM
+
+* Tue Oct 10 2017 Tom Stellard <tstellar@redhat.com> - 5.0.0-2
+- Reduce memory usage on ARM by disabling debuginfo and some non-ARM targets.
+
+* Mon Sep 25 2017 Tom Stellard <tstellar@redhat.com> - 5.0.0-1
+- 5.0.0 Release
 
 * Mon Sep 18 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-6
 - Add Requires: libedit-devel for llvm-devel

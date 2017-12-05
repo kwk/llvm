@@ -1,4 +1,4 @@
-From a5f39924a3466eb12d764993aaa8c1c308f92925 Mon Sep 17 00:00:00 2001
+From 80d3393d3e324dd8bef7de1b9c6db3010585f3e8 Mon Sep 17 00:00:00 2001
 From: Tom Stellard <tstellar@redhat.com>
 Date: Sat, 29 Apr 2017 02:03:23 +0000
 Subject: [PATCH] CMake: Split static library exports into their own export
@@ -31,10 +31,10 @@ Differential Revision: https://reviews.llvm.org/D32668
  3 files changed, 10 insertions(+), 1 deletion(-)
 
 diff --git a/cmake/modules/AddLLVM.cmake b/cmake/modules/AddLLVM.cmake
-index b3c7746..7d9d253 100644
+index 1c92265..e1ad9b9 100644
 --- a/cmake/modules/AddLLVM.cmake
 +++ b/cmake/modules/AddLLVM.cmake
-@@ -587,7 +587,11 @@ macro(add_llvm_library name)
+@@ -603,7 +603,11 @@ macro(add_llvm_library name)
  
        if(${name} IN_LIST LLVM_DISTRIBUTION_COMPONENTS OR
            NOT LLVM_DISTRIBUTION_COMPONENTS)
@@ -69,10 +69,10 @@ index ac4b0b7..f77c905 100644
  
    install(FILES
 diff --git a/cmake/modules/LLVMConfig.cmake.in b/cmake/modules/LLVMConfig.cmake.in
-index c30c92b..f0f17b2 100644
+index 7a8eb36..1fa0028 100644
 --- a/cmake/modules/LLVMConfig.cmake.in
 +++ b/cmake/modules/LLVMConfig.cmake.in
-@@ -73,6 +73,8 @@ if(NOT TARGET LLVMSupport)
+@@ -77,6 +77,8 @@ if(NOT TARGET LLVMSupport)
    set(LLVM_EXPORTED_TARGETS "@LLVM_CONFIG_EXPORTS@")
    include("@LLVM_CONFIG_EXPORTS_FILE@")
    @llvm_config_include_buildtree_only_exports@
@@ -80,7 +80,7 @@ index c30c92b..f0f17b2 100644
 +  include("@LLVM_CONFIG_STATIC_EXPORTS_FILE@" OPTIONAL)
  endif()
  
- include(${LLVM_CMAKE_DIR}/LLVM-Config.cmake)
+ set_property(GLOBAL PROPERTY LLVM_TARGETS_CONFIGURED On)
 -- 
-2.9.3
+1.8.3.1
 

@@ -1,8 +1,12 @@
-From fd80342a58ead0dc7b008ce6ce8523cdea765f5f Mon Sep 17 00:00:00 2001
-From: Jonas Devlieghere <jonas@devlieghere.com>
-Date: Wed, 15 Nov 2017 10:57:05 +0000
-Subject: [PATCH] [DebugInfo] Fix potential CU mismatch for
- SubprogramScopeDIEs.
+From d61468959556ddc180c6c28edff476244fd0e8a6 Mon Sep 17 00:00:00 2001
+From: tstellar <tstellar@91177308-0d34-0410-b5e6-96231b3b80d8>
+Date: Fri, 17 Nov 2017 18:48:34 +0000
+Subject: [PATCH] Merging r318289:
+
+------------------------------------------------------------------------
+r318289 | jdevlieghere | 2017-11-15 02:57:05 -0800 (Wed, 15 Nov 2017) | 14 lines
+
+[DebugInfo] Fix potential CU mismatch for SubprogramScopeDIEs.
 
 In constructAbstractSubprogramScopeDIE there can be a potential mismatch
 between `this` and the CU of ContextDIE when a scope is shared between
@@ -16,20 +20,21 @@ This fixes PR35212 (https://bugs.llvm.org/show_bug.cgi?id=35212)
 Patch by Philip Craig!
 
 Differential revision: https://reviews.llvm.org/D39981
+------------------------------------------------------------------------
 
-git-svn-id: https://llvm.org/svn/llvm-project/llvm/trunk@318289 91177308-0d34-0410-b5e6-96231b3b80d8
+git-svn-id: https://llvm.org/svn/llvm-project/llvm/branches/release_50@318542 91177308-0d34-0410-b5e6-96231b3b80d8
 ---
  lib/CodeGen/AsmPrinter/DwarfCompileUnit.cpp | 20 ++++++++----
- lib/CodeGen/AsmPrinter/DwarfDebug.h         |  6 +++-
+ lib/CodeGen/AsmPrinter/DwarfDebug.h         |  5 ++-
  test/DebugInfo/cross-cu-scope.ll            | 50 +++++++++++++++++++++++++++++
- 3 files changed, 68 insertions(+), 8 deletions(-)
+ 3 files changed, 67 insertions(+), 8 deletions(-)
  create mode 100644 test/DebugInfo/cross-cu-scope.ll
 
 diff --git a/lib/CodeGen/AsmPrinter/DwarfCompileUnit.cpp b/lib/CodeGen/AsmPrinter/DwarfCompileUnit.cpp
-index d904372..eea30a7 100644
+index 676c48f..333d14a 100644
 --- a/lib/CodeGen/AsmPrinter/DwarfCompileUnit.cpp
 +++ b/lib/CodeGen/AsmPrinter/DwarfCompileUnit.cpp
-@@ -616,6 +616,7 @@ void DwarfCompileUnit::constructAbstractSubprogramScopeDIE(
+@@ -621,6 +621,7 @@ void DwarfCompileUnit::constructAbstractSubprogramScopeDIE(
    auto *SP = cast<DISubprogram>(Scope->getScopeNode());
  
    DIE *ContextDIE;
@@ -37,7 +42,7 @@ index d904372..eea30a7 100644
  
    if (includeMinimalInlineScopes())
      ContextDIE = &getUnitDie();
-@@ -626,18 +627,23 @@ void DwarfCompileUnit::constructAbstractSubprogramScopeDIE(
+@@ -631,18 +632,23 @@ void DwarfCompileUnit::constructAbstractSubprogramScopeDIE(
    else if (auto *SPDecl = SP->getDeclaration()) {
      ContextDIE = &getUnitDie();
      getOrCreateSubprogramDIE(SPDecl);
@@ -69,10 +74,10 @@ index d904372..eea30a7 100644
  
  DIE *DwarfCompileUnit::constructImportedEntityDIE(
 diff --git a/lib/CodeGen/AsmPrinter/DwarfDebug.h b/lib/CodeGen/AsmPrinter/DwarfDebug.h
-index 253e3f0..9ade921 100644
+index 5dfe06c..78ee9a1 100644
 --- a/lib/CodeGen/AsmPrinter/DwarfDebug.h
 +++ b/lib/CodeGen/AsmPrinter/DwarfDebug.h
-@@ -280,7 +280,7 @@ class DwarfDebug : public DebugHandlerBase {
+@@ -283,7 +283,7 @@ class DwarfDebug : public DebugHandlerBase {
    // 0, referencing the comp_dir of all the type units that use it.
    MCDwarfDwoLineTable SplitTypeUnitFileTable;
    /// @}
@@ -81,14 +86,13 @@ index 253e3f0..9ade921 100644
    /// True iff there are multiple CUs in this module.
    bool SingleCU;
    bool IsDarwin;
-@@ -555,6 +555,10 @@ public:
-   /// A helper function to check whether the DIE for a given Scope is
-   /// going to be null.
+@@ -562,6 +562,9 @@ public:
    bool isLexicalScopeDIENull(LexicalScope *Scope);
+ 
+   bool hasDwarfPubSections(bool includeMinimalInlineScopes) const;
 +
 +  /// Find the matching DwarfCompileUnit for the given CU DIE.
 +  DwarfCompileUnit *lookupCU(const DIE *Die) { return CUDieMap.lookup(Die); }
-+
  };
  } // End of namespace llvm
  
@@ -149,5 +153,5 @@ index 0000000..7c71f27
 +!16 = !DIBasicType(name: "usize", size: 64, encoding: DW_ATE_unsigned)
 +!17 = !DILocation(line: 1521, scope: !4)
 -- 
-2.9.3
+1.8.3.1
 
