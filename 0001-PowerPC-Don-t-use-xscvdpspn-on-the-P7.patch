@@ -1,0 +1,79 @@
+From a481ab548d038c1dfd52ee211b997e2dd33ff5ae Mon Sep 17 00:00:00 2001
+From: Hal Finkel <hfinkel@anl.gov>
+Date: Wed, 6 Sep 2017 03:08:26 +0000
+Subject: [PATCH] [PowerPC] Don't use xscvdpspn on the P7
+
+xscvdpspn was not introduced until the P8, so don't use it on the P7. Fixes a
+regression introduced in r288152.
+
+git-svn-id: https://llvm.org/svn/llvm-project/llvm/trunk@312612 91177308-0d34-0410-b5e6-96231b3b80d8
+---
+ lib/Target/PowerPC/PPCISelLowering.cpp |  9 ++++++---
+ test/CodeGen/PowerPC/fp-splat.ll       | 27 +++++++++++++++++++++++++++
+ 2 files changed, 33 insertions(+), 3 deletions(-)
+ create mode 100644 test/CodeGen/PowerPC/fp-splat.ll
+
+diff --git a/lib/Target/PowerPC/PPCISelLowering.cpp b/lib/Target/PowerPC/PPCISelLowering.cpp
+index 74dedaf..6295693 100644
+--- a/lib/Target/PowerPC/PPCISelLowering.cpp
++++ b/lib/Target/PowerPC/PPCISelLowering.cpp
+@@ -7463,9 +7463,11 @@ static SDValue BuildVSLDOI(SDValue LHS, SDValue RHS, unsigned Amt, EVT VT,
+ /// - The node is a "load-and-splat"
+ /// In all other cases, we will choose to keep the BUILD_VECTOR.
+ static bool haveEfficientBuildVectorPattern(BuildVectorSDNode *V,
+-                                            bool HasDirectMove) {
++                                            bool HasDirectMove,
++                                            bool HasP8Vector) {
+   EVT VecVT = V->getValueType(0);
+-  bool RightType = VecVT == MVT::v2f64 || VecVT == MVT::v4f32 ||
++  bool RightType = VecVT == MVT::v2f64 ||
++    (HasP8Vector && VecVT == MVT::v4f32) ||
+     (HasDirectMove && (VecVT == MVT::v2i64 || VecVT == MVT::v4i32));
+   if (!RightType)
+     return false;
+@@ -7627,7 +7629,8 @@ SDValue PPCTargetLowering::LowerBUILD_VECTOR(SDValue Op,
+     // lowered to VSX instructions under certain conditions.
+     // Without VSX, there is no pattern more efficient than expanding the node.
+     if (Subtarget.hasVSX() &&
+-        haveEfficientBuildVectorPattern(BVN, Subtarget.hasDirectMove()))
++        haveEfficientBuildVectorPattern(BVN, Subtarget.hasDirectMove(),
++                                        Subtarget.hasP8Vector()))
+       return Op;
+     return SDValue();
+   }
+diff --git a/test/CodeGen/PowerPC/fp-splat.ll b/test/CodeGen/PowerPC/fp-splat.ll
+new file mode 100644
+index 0000000..9b1ab21
+--- /dev/null
++++ b/test/CodeGen/PowerPC/fp-splat.ll
+@@ -0,0 +1,27 @@
++; RUN: llc -mcpu=pwr8 -mtriple=powerpc64le-unknown-linux-gnu < %s | FileCheck %s -check-prefix=CHECK-P8 -check-prefix=CHECK
++; RUN: llc -mcpu=pwr7 -mtriple=powerpc64-unknown-linux-gnu < %s | FileCheck %s -check-prefix=CHECK-P7 -check-prefix=CHECK
++
++define <4 x float> @test1(float %a) {
++entry:
++; CHECK-LABEL: test1
++  %vecins = insertelement <4 x float> undef, float %a, i32 0
++  %vecins1 = insertelement <4 x float> %vecins, float %a, i32 1
++  %vecins2 = insertelement <4 x float> %vecins1, float %a, i32 2
++  %vecins3 = insertelement <4 x float> %vecins2, float %a, i32 3
++  ret <4 x float> %vecins3
++; CHECK-P8: xscvdpspn
++; CHECK-P7-NOT: xscvdpspn
++; CHECK: blr
++}
++
++define <2 x double> @test2(double %a) {
++entry:
++; CHECK-LABEL: test2
++  %vecins = insertelement <2 x double> undef, double %a, i32 0
++  %vecins1 = insertelement <2 x double> %vecins, double %a, i32 1
++  ret <2 x double> %vecins1
++; CHECK-P8: xxspltd
++; CHECK-P7: xxspltd
++; CHECK: blr
++}
++
+-- 
+1.8.3.1
+
