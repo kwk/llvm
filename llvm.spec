@@ -6,18 +6,19 @@
 %endif
 
 %global llvm_bindir %{_libdir}/%{name}
-%global maj_ver 5
+%global maj_ver 6
 %global min_ver 0
-%global patch_ver 1
+%global patch_ver 0
+%global rc_ver 1
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	1%{?dist}
+Release:	0.1.rc1%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
 URL:		http://llvm.org
-Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}.src.tar.xz
+Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}%{?rc_ver:rc%{rc_ver}}.src.tar.xz
 
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
@@ -25,7 +26,6 @@ Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 # FIXME: Symbol versioning breaks some unittests when statically linking
 # libstdc++, so we disable it for now.
 Patch4:		0001-Revert-Add-a-linker-script-to-version-LLVM-symbols.patch
-Patch5:		0001-PowerPC-Don-t-use-xscvdpspn-on-the-P7.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -85,7 +85,7 @@ Summary:	LLVM static libraries
 Static libraries for the LLVM compiler infrastructure.
 
 %prep
-%autosetup -n %{name}-%{version}.src -p1
+%autosetup -n %{name}-%{version}%{?rc_ver:rc%{rc_ver}}.src -p1
 
 %ifarch armv7hl
 
@@ -216,6 +216,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Fri Jan 19 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-0.1.rc1
+- 6.0.1 rc1
+
 * Tue Dec 19 2017 Tom Stellard <tstellar@redhat.com> - 5.0.1-1
 - 5.0.1 Release
 
