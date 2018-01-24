@@ -1,0 +1,42 @@
+From ca865fbaa493ff3250db39786c41658037e456ab Mon Sep 17 00:00:00 2001
+From: Daniel Jasper <djasper@google.com>
+Date: Thu, 12 Oct 2017 13:25:05 +0000
+Subject: [PATCH 2/2] Reinstantiate old/bad deduplication logic that was
+ removed in r315279.
+
+While this shouldn't be necessary anymore, we have cases where we run
+into the assertion below, i.e. cases with two non-fragment entries for the
+same variable at different frame indices.
+
+This should be fixed, but for now, we should revert to a version that
+does not trigger asserts.
+
+git-svn-id: https://llvm.org/svn/llvm-project/llvm/trunk@315576 91177308-0d34-0410-b5e6-96231b3b80d8
+---
+ lib/CodeGen/AsmPrinter/DwarfDebug.cpp | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/lib/CodeGen/AsmPrinter/DwarfDebug.cpp b/lib/CodeGen/AsmPrinter/DwarfDebug.cpp
+index 90f6f2f..064450f 100644
+--- a/lib/CodeGen/AsmPrinter/DwarfDebug.cpp
++++ b/lib/CodeGen/AsmPrinter/DwarfDebug.cpp
+@@ -219,6 +219,16 @@ void DbgVariable::addMMIEntry(const DbgVariable &V) {
+   assert(!FrameIndexExprs.empty() && "Expected an MMI entry");
+   assert(!V.FrameIndexExprs.empty() && "Expected an MMI entry");
+ 
++  // FIXME: This logic should not be necessary anymore, as we now have proper
++  // deduplication. However, without it, we currently run into the assertion
++  // below, which means that we are likely dealing with broken input, i.e. two
++  // non-fragment entries for the same variable at different frame indices.
++  if (FrameIndexExprs.size()) {
++    auto *Expr = FrameIndexExprs.back().Expr;
++    if (!Expr || !Expr->isFragment())
++      return;
++  }
++
+   for (const auto &FIE : V.FrameIndexExprs)
+     // Ignore duplicate entries.
+     if (llvm::none_of(FrameIndexExprs, [&](const FrameIndexExpr &Other) {
+-- 
+1.8.3.1
+

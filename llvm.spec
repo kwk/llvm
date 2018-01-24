@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -26,6 +26,8 @@ Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 # libstdc++, so we disable it for now.
 Patch4:		0001-Revert-Add-a-linker-script-to-version-LLVM-symbols.patch
 Patch5:		0001-PowerPC-Don-t-use-xscvdpspn-on-the-P7.patch
+Patch6:		0001-Ignore-all-duplicate-frame-index-expression.patch
+Patch7:		0002-Reinstantiate-old-bad-deduplication-logic-that-was-r.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -216,6 +218,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Thu Feb 01 2018 Tom Stellard <tstellar@redhat.com> - 5.0.1-2
+- Backport r315279 to fix an issue with rust
+
 * Tue Dec 19 2017 Tom Stellard <tstellar@redhat.com> - 5.0.1-1
 - 5.0.1 Release
 
