@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -28,6 +28,8 @@ Patch4:		0001-Revert-Add-a-linker-script-to-version-LLVM-symbols.patch
 Patch5:		0001-PowerPC-Don-t-use-xscvdpspn-on-the-P7.patch
 Patch6:		0001-Ignore-all-duplicate-frame-index-expression.patch
 Patch7:		0002-Reinstantiate-old-bad-deduplication-logic-that-was-r.patch
+Patch8:		0001-Merging-r323155.patch
+Patch9:		0001-Merging-r323915.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -218,6 +220,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Tue Feb 06 2018 Tom Stellard <tstellar@redhat.com> - 5.0.1-3
+- Backport retpoline support
+
 * Thu Feb 01 2018 Tom Stellard <tstellar@redhat.com> - 5.0.1-2
 - Backport r315279 to fix an issue with rust
 
