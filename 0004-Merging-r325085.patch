@@ -1,0 +1,65 @@
+From de9a0f9c449d4b13c70eff8c9a3023948dc21cb7 Mon Sep 17 00:00:00 2001
+From: Reid Kleckner <rnk@google.com>
+Date: Wed, 14 Feb 2018 00:34:35 +0000
+Subject: [PATCH 4/4] Merging r325085:
+ ------------------------------------------------------------------------
+ r325085 | rnk | 2018-02-13 16:24:29 -0800 (Tue, 13 Feb 2018) | 3 lines
+
+[X86] Remove dead code from retpoline thunk generation
+
+Follow-up to r325049
+------------------------------------------------------------------------
+
+
+git-svn-id: https://llvm.org/svn/llvm-project/llvm/branches/release_50@325091 91177308-0d34-0410-b5e6-96231b3b80d8
+---
+ lib/Target/X86/X86RetpolineThunks.cpp | 26 --------------------------
+ 1 file changed, 26 deletions(-)
+
+diff --git a/lib/Target/X86/X86RetpolineThunks.cpp b/lib/Target/X86/X86RetpolineThunks.cpp
+index 59ace3f..d03826b 100644
+--- a/lib/Target/X86/X86RetpolineThunks.cpp
++++ b/lib/Target/X86/X86RetpolineThunks.cpp
+@@ -74,7 +74,6 @@ private:
+ 
+   void createThunkFunction(Module &M, StringRef Name);
+   void insertRegReturnAddrClobber(MachineBasicBlock &MBB, unsigned Reg);
+-  void insert32BitPushReturnAddrClobber(MachineBasicBlock &MBB);
+   void populateThunk(MachineFunction &MF, Optional<unsigned> Reg = None);
+ };
+ 
+@@ -225,31 +224,6 @@ void X86RetpolineThunks::insertRegReturnAddrClobber(MachineBasicBlock &MBB,
+       .addReg(Reg);
+ }
+ 
+-void X86RetpolineThunks::insert32BitPushReturnAddrClobber(
+-    MachineBasicBlock &MBB) {
+-  // The instruction sequence we use to replace the return address without
+-  // a scratch register is somewhat complicated:
+-  //   # Clear capture_spec from return address.
+-  //   addl $4, %esp
+-  //   # Top of stack words are: Callee, RA. Exchange Callee and RA.
+-  //   pushl 4(%esp)  # Push callee
+-  //   pushl 4(%esp)  # Push RA
+-  //   popl 8(%esp)   # Pop RA to final RA
+-  //   popl (%esp)    # Pop callee to next top of stack
+-  //   retl           # Ret to callee
+-  BuildMI(&MBB, DebugLoc(), TII->get(X86::ADD32ri), X86::ESP)
+-      .addReg(X86::ESP)
+-      .addImm(4);
+-  addRegOffset(BuildMI(&MBB, DebugLoc(), TII->get(X86::PUSH32rmm)), X86::ESP,
+-               false, 4);
+-  addRegOffset(BuildMI(&MBB, DebugLoc(), TII->get(X86::PUSH32rmm)), X86::ESP,
+-               false, 4);
+-  addRegOffset(BuildMI(&MBB, DebugLoc(), TII->get(X86::POP32rmm)), X86::ESP,
+-               false, 8);
+-  addRegOffset(BuildMI(&MBB, DebugLoc(), TII->get(X86::POP32rmm)), X86::ESP,
+-               false, 0);
+-}
+-
+ void X86RetpolineThunks::populateThunk(MachineFunction &MF,
+                                        Optional<unsigned> Reg) {
+   // Set MF properties. We never use vregs...
+-- 
+1.8.3.1
+

@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -30,6 +30,10 @@ Patch6:		0001-Ignore-all-duplicate-frame-index-expression.patch
 Patch7:		0002-Reinstantiate-old-bad-deduplication-logic-that-was-r.patch
 Patch8:		0001-Merging-r323155.patch
 Patch9:		0001-Merging-r323915.patch
+Patch10:	0001-Merging-r324449.patch
+Patch11:	0002-Merging-r324645.patch
+Patch12:	0003-Merging-r325049.patch
+Patch13:	0004-Merging-r325085.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -220,6 +224,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Wed Mar 07 2018 Tom Stellard <tstellar@redhat.com> - 5.0.1-4
+- Backport more retpoline patches
+
 * Tue Feb 06 2018 Tom Stellard <tstellar@redhat.com> - 5.0.1-3
 - Backport retpoline support
 
