@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -27,6 +27,7 @@ Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch4:		0001-Revert-Add-a-linker-script-to-version-LLVM-symbols.patch
 
 BuildRequires:	cmake
+BuildRequires:	ninja-build
 BuildRequires:	zlib-devel
 BuildRequires:  libffi-devel
 BuildRequires:	ncurses-devel
@@ -103,7 +104,7 @@ cd _build
 %endif
 
 # force off shared libs as cmake macros turns it on.
-%cmake .. \
+%cmake .. -G Ninja \
 	-DBUILD_SHARED_LIBS:BOOL=OFF \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DCMAKE_SHARED_LINKER_FLAGS="-Wl,-Bsymbolic -static-libstdc++" \
@@ -139,7 +140,7 @@ cd _build
 	\
 	-DLLVM_INCLUDE_UTILS:BOOL=ON \
 	-DLLVM_INSTALL_UTILS:BOOL=ON \
-	-DLLVM_UTILS_INSTALL_DIR:PATH=%{llvm_bindir} \
+	-DLLVM_UTILS_INSTALL_DIR:PATH=%{buildroot}%{llvm_bindir} \
 	\
 	-DLLVM_INCLUDE_DOCS:BOOL=ON \
 	-DLLVM_BUILD_DOCS:BOOL=ON \
@@ -153,13 +154,14 @@ cd _build
 	-DLLVM_INSTALL_TOOLCHAIN_ONLY:BOOL=OFF \
 	\
 	-DSPHINX_WARNINGS_AS_ERRORS=OFF \
+	-DCMAKE_INSTALL_PREFIX=%{buildroot}/usr \
 	-DSPHINX_EXECUTABLE=%{_bindir}/sphinx-build-3
 
-make %{?_smp_mflags}
+ninja -v
 
 %install
 cd _build
-make install DESTDIR=%{buildroot}
+ninja -v install
 
 # fix multi-lib
 mv -v %{buildroot}%{_bindir}/llvm-config{,-%{__isa_bits}}
@@ -215,6 +217,10 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Thu Mar 08 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-2
+- Build with Ninja: This reduces RPM build time on a 6-core x86_64 builder
+  from 82 min to 52 min.
+
 * Thu Mar 08 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-1
 - 6.0.0 Release
 
