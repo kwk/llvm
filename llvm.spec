@@ -13,7 +13,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.4.rc%{rc_ver}%{?dist}
+Release:	0.5.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -98,7 +98,7 @@ for f in `grep -Rl 'XFAIL.\+arm' test/ExecutionEngine `; do  rm $f; done
 mkdir -p _build
 cd _build
 
-%ifarch s390 %{arm}
+%ifarch s390 %{arm} %ix86
 # Decrease debuginfo verbosity to reduce memory consumption during final library linking
 %global optflags %(echo %{optflags} | sed 's/-g /-g1 /')
 %endif
@@ -108,7 +108,7 @@ cd _build
 	-DBUILD_SHARED_LIBS:BOOL=OFF \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DCMAKE_SHARED_LINKER_FLAGS="-Wl,-Bsymbolic -static-libstdc++" \
-%ifarch s390 %{arm}
+%ifarch s390 %{arm} %ix86
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 %endif
@@ -216,6 +216,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Thu Mar 08 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-0.5.rc2
+- Reduce debuginfo size on i686 to avoid OOM errors during linking
+
 * Fri Feb 09 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-0.4.rc2
 - 6.0.1 rc2
 
