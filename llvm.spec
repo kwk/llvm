@@ -9,11 +9,10 @@
 %global maj_ver 6
 %global min_ver 0
 %global patch_ver 0
-%global rc_ver 2
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.5.rc%{rc_ver}%{?dist}
+Release:	1%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -216,6 +215,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Thu Mar 08 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-1
+- 6.0.0 Release
+
 * Thu Mar 08 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-0.5.rc2
 - Reduce debuginfo size on i686 to avoid OOM errors during linking
 
