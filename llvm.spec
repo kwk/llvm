@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -25,6 +25,8 @@ Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 # FIXME: Symbol versioning breaks some unittests when statically linking
 # libstdc++, so we disable it for now.
 Patch4:		0001-Revert-Add-a-linker-script-to-version-LLVM-symbols.patch
+Patch5:		0001-DebugInfo-Discard-invalid-DBG_VALUE-instructions-in-.patch
+Patch6:		0001-Fixup-for-rL326769-RegState-Debug-is-being-truncated.patch
 
 BuildRequires:	cmake
 BuildRequires:	ninja-build
@@ -217,6 +219,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Fri Mar 09 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-3
+- Backport fix for compile time regression on rust rhbz#1552915
+
 * Thu Mar 08 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-2
 - Build with Ninja: This reduces RPM build time on a 6-core x86_64 builder
   from 82 min to 52 min.
