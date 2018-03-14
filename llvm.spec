@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -172,7 +172,7 @@ mv -v %{buildroot}%{_bindir}/llvm-config{,-%{__isa_bits}}
 
 %check
 cd _build
-make check-all || :
+ninja check-all || :
 
 %post libs -p /sbin/ldconfig
 %postun libs -p /sbin/ldconfig
@@ -219,6 +219,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Wed Mar 14 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-4
+- s/make check/ninja check/
+
 * Fri Mar 09 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-3
 - Backport fix for compile time regression on rust rhbz#1552915
 
