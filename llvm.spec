@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	5%{?dist}
+Release:	6%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -22,9 +22,6 @@ Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}%{?rc_ver:rc%{rc_
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
-# FIXME: Symbol versioning breaks some unittests when statically linking
-# libstdc++, so we disable it for now.
-Patch4:		0001-Revert-Add-a-linker-script-to-version-LLVM-symbols.patch
 Patch5:		0001-DebugInfo-Discard-invalid-DBG_VALUE-instructions-in-.patch
 Patch6:		0001-Fixup-for-rL326769-RegState-Debug-is-being-truncated.patch
 
@@ -218,6 +215,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Wed Mar 14 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-6
+- Enable symbol versioning in libLLVM.so
+
 * Wed Mar 14 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-5
 - Stop statically linking libstdc++.  This is no longer required by Steam
   client, but the steam installer still needs a work-around which should
