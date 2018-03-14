@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -109,7 +109,6 @@ cd _build
 %cmake .. -G Ninja \
 	-DBUILD_SHARED_LIBS:BOOL=OFF \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	-DCMAKE_SHARED_LINKER_FLAGS="-Wl,-Bsymbolic -static-libstdc++" \
 %ifarch s390 %{arm} %ix86
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
@@ -219,6 +218,10 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Wed Mar 14 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-5
+- Stop statically linking libstdc++.  This is no longer required by Steam
+  client, but the steam installer still needs a work-around which should
+  be handled in the steam package.
 * Wed Mar 14 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-4
 - s/make check/ninja check/
 
