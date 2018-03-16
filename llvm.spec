@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	6%{?dist}
+Release:	7%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -24,6 +24,7 @@ Patch0:		llvm-3.7.1-cmake-s390.patch
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch5:		0001-DebugInfo-Discard-invalid-DBG_VALUE-instructions-in-.patch
 Patch6:		0001-Fixup-for-rL326769-RegState-Debug-is-being-truncated.patch
+Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 
 BuildRequires:	cmake
 BuildRequires:	ninja-build
@@ -215,6 +216,10 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Fri Mar 16 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-7
+- Filter out cxxflags and cflags from llvm-config that aren't supported by clang
+- rhbz#1556980
+
 * Wed Mar 14 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-6
 - Enable symbol versioning in libLLVM.so
 
