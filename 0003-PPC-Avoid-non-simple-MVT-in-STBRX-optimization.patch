@@ -1,0 +1,69 @@
+From 8578ad1fb9aa7ebc7e6da266371b8fd58e67633f Mon Sep 17 00:00:00 2001
+From: Guozhi Wei <carrot@google.com>
+Date: Thu, 15 Mar 2018 17:49:12 +0000
+Subject: [PATCH 3/3] [PPC] Avoid non-simple MVT in STBRX optimization
+
+PR35402 triggered this case. It bswap and stores a 48bit value, current STBRX optimization transforms it into STBRX. Unfortunately 48bit is not a simple MVT, there is no PPC instruction to support it, and it can't be automatically expanded by llvm, so caused a crash.
+
+This patch detects the non-simple MVT and returns early.
+
+Differential Revision: https://reviews.llvm.org/D44500
+
+git-svn-id: https://llvm.org/svn/llvm-project/llvm/trunk@327651 91177308-0d34-0410-b5e6-96231b3b80d8
+---
+ lib/Target/PowerPC/PPCISelLowering.cpp |  6 +++++-
+ test/CodeGen/PowerPC/pr35402.ll        | 18 ++++++++++++++++++
+ 2 files changed, 23 insertions(+), 1 deletion(-)
+ create mode 100644 test/CodeGen/PowerPC/pr35402.ll
+
+diff --git a/lib/Target/PowerPC/PPCISelLowering.cpp b/lib/Target/PowerPC/PPCISelLowering.cpp
+index 521bb32..3c37306 100644
+--- a/lib/Target/PowerPC/PPCISelLowering.cpp
++++ b/lib/Target/PowerPC/PPCISelLowering.cpp
+@@ -11221,6 +11221,11 @@ SDValue PPCTargetLowering::PerformDAGCombine(SDNode *N,
+          N->getOperand(1).getValueType() == MVT::i16 ||
+          (Subtarget.hasLDBRX() && Subtarget.isPPC64() &&
+           N->getOperand(1).getValueType() == MVT::i64))) {
++      // STBRX can only handle simple types.
++      EVT mVT = cast<StoreSDNode>(N)->getMemoryVT();
++      if (mVT.isExtended())
++        break;
++
+       SDValue BSwapOp = N->getOperand(1).getOperand(0);
+       // Do an any-extend to 32-bits if this is a half-word input.
+       if (BSwapOp.getValueType() == MVT::i16)
+@@ -11228,7 +11233,6 @@ SDValue PPCTargetLowering::PerformDAGCombine(SDNode *N,
+ 
+       // If the type of BSWAP operand is wider than stored memory width
+       // it need to be shifted to the right side before STBRX.
+-      EVT mVT = cast<StoreSDNode>(N)->getMemoryVT();
+       if (Op1VT.bitsGT(mVT)) {
+         int Shift = Op1VT.getSizeInBits() - mVT.getSizeInBits();
+         BSwapOp = DAG.getNode(ISD::SRL, dl, Op1VT, BSwapOp,
+diff --git a/test/CodeGen/PowerPC/pr35402.ll b/test/CodeGen/PowerPC/pr35402.ll
+new file mode 100644
+index 0000000..06e6d96
+--- /dev/null
++++ b/test/CodeGen/PowerPC/pr35402.ll
+@@ -0,0 +1,18 @@
++; RUN: llc -O2 < %s | FileCheck %s
++target triple = "powerpc64le-linux-gnu"
++
++define void @test(i8* %p, i64 %data) {
++entry:
++  %0 = tail call i64 @llvm.bswap.i64(i64 %data)
++  %ptr = bitcast i8* %p to i48*
++  %val = trunc i64 %0 to i48
++  store i48 %val, i48* %ptr, align 1
++  ret void
++
++; CHECK:     sth
++; CHECK:     stw
++; CHECK-NOT: stdbrx
++
++}
++
++declare i64 @llvm.bswap.i64(i64)
+-- 
+1.8.3.1
+

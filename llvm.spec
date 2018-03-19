@@ -9,7 +9,7 @@
 
 Name:		llvm
 Version:	4.0.1
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -24,6 +24,9 @@ Patch4:		0001-Revert-Revert-CMake-Move-sphinx-detection-into-AddSp.patch
 Patch5:		0001-CMake-Fix-docs-llvm-man-target-when-clang-llvm-is-in.patch
 Patch6:		0001-CMake-Add-LLVM_UTILS_INSTALL_DIR-option.patch
 Patch7:		0001-DebugInfo-Fix-potential-CU-mismatch-for-SubprogramSc.patch
+Patch8:		0001-PPC-Fix-code-generation-for-bswap-int32-followed-by-.patch
+Patch9:		0002-PowerPC-Fix-failure-with-STBRX-when-store-is-narrowe.patch
+Patch10:	0003-PPC-Avoid-non-simple-MVT-in-STBRX-optimization.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -205,6 +208,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Mon Mar 19 2018 Tom Stellard <tstellar@redhat.com> - 4.0.1-3
+- Backport r296811, r297001, and r327651 from trunk. rhbz#1554349
+
 * Tue Nov 21 2017 Tom Stellard <tstellar@redhat.com> - 4.0.1-2
 - Backport r318289 to fix a debuginfo issue with rust.
 
