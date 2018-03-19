@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	7%{?dist}
+Release:	8%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -25,6 +25,7 @@ Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch5:		0001-DebugInfo-Discard-invalid-DBG_VALUE-instructions-in-.patch
 Patch6:		0001-Fixup-for-rL326769-RegState-Debug-is-being-truncated.patch
 Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
+Patch8:		0001-PPC-Avoid-non-simple-MVT-in-STBRX-optimization.patch
 
 BuildRequires:	cmake
 BuildRequires:	ninja-build
@@ -216,6 +217,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Mon Mar 19 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-8
+- Backport r327651 from trunk rhbz#1554349
+
 * Fri Mar 16 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-7
 - Filter out cxxflags and cflags from llvm-config that aren't supported by clang
 - rhbz#1556980
