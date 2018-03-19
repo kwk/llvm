@@ -1,0 +1,11 @@
+- hosts: localhost
+  roles:
+  - role: standard-test-basic
+    tags:
+      - classic
+    required_packages:
+      - llvm-test
+    tests:
+      - rhbz#482491:
+          dir: ./
+          run: /usr/libexec/tests/llvm/run-lit-tests

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -xe
+
+#lit -v /usr/share/llvm/src/test
+
+TOOLS_DIR=/usr/lib64/llvm
+cd $(mktemp -d)
+tar -xzf /usr/share/llvm/src/test.tar.gz
+lit test \
+	-DFileCheck=$TOOLS_DIR/FileCheck \
+	-Dcount=$TOOlS_DIR/count \
+	-Dnot=$TOOLS_DIR/not \
+	-Dlli-child-target=$TOOLS_DIR/lli-child-target \
+	-Dllvm-isel-fuzzer=$TOOLS_DIR/llvm-isel-fuzzer \
+	-Dllvm-opt-fuzzer=$TOOLS_DIR/llvm-opt-fuzzer \
+	-Dyaml-bench$TOOLS_DIR/yaml-bench

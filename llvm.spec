@@ -1,3 +1,4 @@
+%global debug_package %{nil}
 # Components enabled if supported by target architecture:
 %ifarch %ix86 x86_64
   %bcond_without gold
@@ -49,12 +50,13 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.4.rc%{rc_ver}%{?dist}
+Release:	0.5.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
 URL:		http://llvm.org
 Source0:	http://%{?rc_ver:pre}releases.llvm.org/%{version}/%{?rc_ver:rc%{rc_ver}}/llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src.tar.xz
+Source1:	run-lit-tests
 
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
@@ -124,6 +126,24 @@ Summary:	LLVM static libraries
 
 %description static
 Static libraries for the LLVM compiler infrastructure.
+
+%if !0%{?compat_build}
+
+%package test
+Summary:	LLVM regression tests.
+
+%description test
+LLVM regression tests.
+Requires:	%{name}%{?_isa} = %{version}-%{release}
+Requires:	python3-lit
+
+%package googletest
+Summary: LLVM's modified googletest sources.
+
+%description googletest
+LLVM's modified googletest sources.
+
+%endif
 
 %prep
 %autosetup -n llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src -p1
@@ -209,6 +229,44 @@ mv -v %{buildroot}%{_bindir}/llvm-config{,-%{__isa_bits}}
 
 %multilib_fix_c_header --file %{_includedir}/llvm/Config/llvm-config.h
 
+# Install binaries needed for lit tests
+%global test_binaries lli-child-target llvm-isel-fuzzer llvm-opt-fuzzer yaml-bench
+for f in %{test_binaries}; do
+install -m 0755 ./bin/$f %{buildroot}%{llvm_bindir}
+done
+
+%global install_srcdir %{buildroot}%{_datadir}/llvm/src
+%global lit_cfg test/lit.site.cfg.py
+%global lit_unit_cfg test/Unit/lit.site.cfg.py
+
+cd ..
+
+# Install gtest sources so clang can use them for gtest
+install -d %{install_srcdir}
+install -d %{install_srcdir}/utils/
+cp -R utils/unittest %{install_srcdir}/utils/
+
+# Generate lit config files.
+cat _build/test/lit.site.cfg.py >> %{lit_cfg}
+cat _build/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
+sed -i -e s~`pwd`/_build~%{_prefix}~g -e s~`pwd`~.~g %{lit_cfg} %{lit_cfg} %{lit_unit_cfg}
+
+# obj_root needs to be set to the directory containing the unit test binaries.
+sed -i 's~\(config.llvm_obj_root = \)"[^"]\+"~\1"%{llvm_bindir}"~' %{lit_unit_cfg}
+
+install -d %{buildroot}%{_libexecdir}/tests/llvm
+install -m 0755 %{SOURCE1} %{buildroot}%{_libexecdir}/tests/llvm
+
+# Install lit tests.  We need to put these in a tarball otherwise rpm will complain
+# about some of the test inputs having the wrong object file format.
+install -d %{buildroot}%{_datadir}/llvm/
+tar -czf %{install_srcdir}/test.tar.gz test/
+
+# Install the unit test binaries
+cp -R _build/unittests %{buildroot}%{llvm_bindir}/
+# FIXME: Can't figure out how to make the find command succeed.
+find %{buildroot}%{llvm_bindir} -ignore_readdir_race -iname 'cmake*' -exec rm -Rf '{}' ';' || true
+
 %else
 
 # Add version suffix to binaries
@@ -272,6 +330,7 @@ fi
 %exclude %{_bindir}/llvm-config-%{__isa_bits}
 %exclude %{_mandir}/man1/llvm-config.1.*
 %{_datadir}/opt-viewer
+%exclude %{llvm_bindir}/unittests
 %else
 %config(noreplace) %{_sysconfdir}/ld.so.conf.d/%{name}-%{_arch}.conf
 %exclude %{pkg_bindir}/llvm-config
@@ -332,7 +391,26 @@ fi
 %{_libdir}/%{name}/lib/*.a
 %endif
 
+%if !0%{?compat_build}
+
+%files test
+%{_libexecdir}/tests/llvm/
+%{llvm_bindir}/unittests/
+%{_datadir}/llvm/src/test.tar.gz
+%{llvm_bindir}/yaml-bench
+%{llvm_bindir}/lli-child-target
+%{llvm_bindir}/llvm-isel-fuzzer
+%{llvm_bindir}/llvm-opt-fuzzer
+
+%files googletest
+%{_datadir}/llvm/src/utils
+
+%endif
+
 %changelog
+* Thu Aug 23 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.5.rc1
+- Package lit tests and googletest sources.
+
 * Mon Aug 20 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.4.rc1
 - Re-enable AMDGPU target on ARM rhbz#1618922
 
