@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -34,6 +34,7 @@ Patch10:	0001-Merging-r324449.patch
 Patch11:	0002-Merging-r324645.patch
 Patch12:	0003-Merging-r325049.patch
 Patch13:	0004-Merging-r325085.patch
+Patch14:	0001-PPC-Avoid-non-simple-MVT-in-STBRX-optimization.patch
 
 BuildRequires:	cmake
 BuildRequires:	zlib-devel
@@ -224,6 +225,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Mon Mar 19 2018 Tom Stellard <tstellar@redhat.com> - 5.0.1-5
+- Backport r327651 from trunk rhbz#1554349
+
 * Wed Mar 07 2018 Tom Stellard <tstellar@redhat.com> - 5.0.1-4
 - Backport more retpoline patches
 
