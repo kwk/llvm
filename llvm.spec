@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	8%{?dist}
+Release:	9%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -26,6 +26,7 @@ Patch5:		0001-DebugInfo-Discard-invalid-DBG_VALUE-instructions-in-.patch
 Patch6:		0001-Fixup-for-rL326769-RegState-Debug-is-being-truncated.patch
 Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 Patch8:		0001-PPC-Avoid-non-simple-MVT-in-STBRX-optimization.patch
+Patch9:		0001-Export-LLVM_DYLIB_COMPONENTS-in-LLVMConfig.cmake.patch
 
 BuildRequires:	cmake
 BuildRequires:	ninja-build
@@ -217,6 +218,10 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Tue Mar 20 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-9
+- Prevent external projects from linking against both static and shared
+  libraries.  rhbz#1558657
+
 * Mon Mar 19 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-8
 - Backport r327651 from trunk rhbz#1554349
 
