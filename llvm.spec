@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	9%{?dist}
+Release:	10%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -218,6 +218,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Thu Mar 22 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-10
+- Fix testcase in backported patch
+
 * Tue Mar 20 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-9
 - Prevent external projects from linking against both static and shared
   libraries.  rhbz#1558657
