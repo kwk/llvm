@@ -12,7 +12,7 @@
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	5%{?dist}
+Release:	6%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -95,13 +95,6 @@ Static libraries for the LLVM compiler infrastructure.
 
 %prep
 %autosetup -n %{name}-%{version}.src -p1
-
-%ifarch armv7hl
-
-# These tests are marked as XFAIL, but they still run and hang on ARM.
-for f in `grep -Rl 'XFAIL.\+arm' test/ExecutionEngine `; do  rm $f; done
-
-%endif
 
 %build
 mkdir -p _build
@@ -225,6 +218,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Tue Mar 27 2018 Tom Stellard <tstellar@redhat.com> - 5.0.1-6
+- Re-enable arm tests that used to hang
+
 * Mon Mar 19 2018 Tom Stellard <tstellar@redhat.com> - 5.0.1-5
 - Backport r327651 from trunk rhbz#1554349
 
