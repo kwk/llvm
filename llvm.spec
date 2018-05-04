@@ -8,11 +8,11 @@
 %global llvm_bindir %{_libdir}/%{name}
 %global maj_ver 5
 %global min_ver 0
-%global patch_ver 1
+%global patch_ver 2
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	6%{?dist}
+Release:	1%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -28,12 +28,6 @@ Patch4:		0001-Revert-Add-a-linker-script-to-version-LLVM-symbols.patch
 Patch5:		0001-PowerPC-Don-t-use-xscvdpspn-on-the-P7.patch
 Patch6:		0001-Ignore-all-duplicate-frame-index-expression.patch
 Patch7:		0002-Reinstantiate-old-bad-deduplication-logic-that-was-r.patch
-Patch8:		0001-Merging-r323155.patch
-Patch9:		0001-Merging-r323915.patch
-Patch10:	0001-Merging-r324449.patch
-Patch11:	0002-Merging-r324645.patch
-Patch12:	0003-Merging-r325049.patch
-Patch13:	0004-Merging-r325085.patch
 Patch14:	0001-PPC-Avoid-non-simple-MVT-in-STBRX-optimization.patch
 
 BuildRequires:	cmake
@@ -218,6 +212,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Thu May 03 2018 Tom Stellard <tstellar@redhat.com> - 5.0.2-1
+- 5.0.2 Release
+
 * Tue Mar 27 2018 Tom Stellard <tstellar@redhat.com> - 5.0.1-6
 - Re-enable arm tests that used to hang
 
