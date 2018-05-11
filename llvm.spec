@@ -8,11 +8,13 @@
 %global llvm_bindir %{_libdir}/%{name}
 %global maj_ver 6
 %global min_ver 0
-%global patch_ver 0
+%global patch_ver 1
+
+%global rc_ver 1
 
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	11%{?dist}
+Release:	0.1.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -22,10 +24,7 @@ Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}%{?rc_ver:rc%{rc_
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
-Patch5:		0001-DebugInfo-Discard-invalid-DBG_VALUE-instructions-in-.patch
-Patch6:		0001-Fixup-for-rL326769-RegState-Debug-is-being-truncated.patch
 Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
-Patch8:		0001-PPC-Avoid-non-simple-MVT-in-STBRX-optimization.patch
 Patch9:		0001-Export-LLVM_DYLIB_COMPONENTS-in-LLVMConfig.cmake.patch
 
 BuildRequires:	cmake
@@ -211,6 +210,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Thu May 10 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-0.1.rc1
+- 6.0.1 rc1
+
 * Tue Mar 27 2018 Tom Stellard <tstellar@redhat.com> - 6.0.0-11
 - Re-enable arm tests that used to hang
 
