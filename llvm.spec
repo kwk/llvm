@@ -12,9 +12,25 @@
 
 %global rc_ver 1
 
+%ifarch s390x
+%global llvm_targets SystemZ;BPF
+%endif
+%ifarch ppc64 ppc64le
+%global llvm_targets PowerPC;AMDGPU;BPF
+%endif
+%ifarch %ix86 x86_64
+%global llvm_targets X86;AMDGPU;NVPTX;BPF
+%endif
+%ifarch aarch64
+%global llvm_targets AArch64;AMDGPU;BPF
+%endif
+%ifarch %{arm}
+%global llvm_targets ARM;BPF
+%endif
+
 Name:		llvm
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.1.rc%{rc_ver}%{?dist}
+Release:	0.2.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -111,7 +127,7 @@ cd _build
 	-DLLVM_LIBDIR_SUFFIX= \
 %endif
 	\
-	-DLLVM_TARGETS_TO_BUILD="X86;AMDGPU;PowerPC;NVPTX;SystemZ;AArch64;ARM;Mips;BPF" \
+	-DLLVM_TARGETS_TO_BUILD="%{llvm_targets}" \
 	-DLLVM_ENABLE_LIBCXX:BOOL=OFF \
 	-DLLVM_ENABLE_ZLIB:BOOL=ON \
 	-DLLVM_ENABLE_FFI:BOOL=ON \
@@ -210,6 +226,9 @@ fi
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 
 %changelog
+* Mon Jun 04 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-0.2.rc1
+- Reduce the number of enabled targets based on the architecture
+
 * Thu May 10 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-0.1.rc1
 - 6.0.1 rc1
 
