@@ -5,19 +5,37 @@
   %bcond_with gold
 %endif
 
+%global compat_build 0
+
 %global llvm_bindir %{_libdir}/%{name}
 %global maj_ver 6
 %global min_ver 0
 %global patch_ver 1
 
-Name:		llvm
+%if 0%{?compat_build}
+%global pkg_name llvm%{maj_ver}.%{min_ver}
+%global exec_suffix -%{maj_ver}.%{min_ver}
+%global install_prefix %{_libdir}/%{name}
+%global install_bindir %{install_prefix}/bin
+%global install_includedir %{install_prefix}/include
+%global install_libdir %{install_prefix}/lib
+
+%global pkg_bindir %{install_bindir}
+%global pkg_includedir %{_includedir}/%{name}
+%global pkg_libdir %{install_libdir}
+%else
+%global pkg_name llvm
+%global install_prefix /usr
+%endif
+
+Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
 URL:		http://llvm.org
-Source0:	http://llvm.org/releases/%{version}/%{name}-%{version}%{?rc_ver:rc%{rc_ver}}.src.tar.xz
+Source0:	http://llvm.org/releases/%{version}/llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src.tar.xz
 
 # recognize s390 as SystemZ when configuring build
 Patch0:		llvm-3.7.1-cmake-s390.patch
@@ -86,7 +104,7 @@ Summary:	LLVM static libraries
 Static libraries for the LLVM compiler infrastructure.
 
 %prep
-%autosetup -n %{name}-%{version}%{?rc_ver:rc%{rc_ver}}.src -p1
+%autosetup -n llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src -p1
 
 %build
 mkdir -p _build
@@ -105,10 +123,12 @@ cd _build
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 %endif
+%if !0%{?compat_build}
 %if 0%{?__isa_bits} == 64
 	-DLLVM_LIBDIR_SUFFIX=64 \
 %else
 	-DLLVM_LIBDIR_SUFFIX= \
+%endif
 %endif
 	\
 	-DLLVM_TARGETS_TO_BUILD="X86;AMDGPU;PowerPC;NVPTX;SystemZ;AArch64;ARM;Mips;BPF" \
@@ -132,8 +152,12 @@ cd _build
 	-DLLVM_BUILD_EXAMPLES:BOOL=OFF \
 	\
 	-DLLVM_INCLUDE_UTILS:BOOL=ON \
+%if 0%{?compat_build}
+	-DLLVM_INSTALL_UTILS:BOOL=OFF \
+%else
 	-DLLVM_INSTALL_UTILS:BOOL=ON \
 	-DLLVM_UTILS_INSTALL_DIR:PATH=%{buildroot}%{llvm_bindir} \
+%endif
 	\
 	-DLLVM_INCLUDE_DOCS:BOOL=ON \
 	-DLLVM_BUILD_DOCS:BOOL=ON \
@@ -147,7 +171,8 @@ cd _build
 	-DLLVM_INSTALL_TOOLCHAIN_ONLY:BOOL=OFF \
 	\
 	-DSPHINX_WARNINGS_AS_ERRORS=OFF \
-	-DCMAKE_INSTALL_PREFIX=%{buildroot}/usr \
+	-DCMAKE_INSTALL_PREFIX=%{buildroot}%{install_prefix} \
+	-DLLVM_INSTALL_SPHINX_HTML_DIR=%{buildroot}%{_pkgdocdir}/html \
 	-DSPHINX_EXECUTABLE=%{_bindir}/sphinx-build-3
 
 ninja -v
@@ -156,10 +181,47 @@ ninja -v
 cd _build
 ninja -v install
 
+%if !0%{?compat_build}
 # fix multi-lib
 mv -v %{buildroot}%{_bindir}/llvm-config{,-%{__isa_bits}}
 
 %multilib_fix_c_header --file %{_includedir}/llvm/Config/llvm-config.h
+
+%else
+
+# Add version suffix to binaries
+mkdir -p %{buildroot}/%{_bindir}
+for f in `ls %{buildroot}/%{install_bindir}/*`; do
+  filename=`basename $f`
+  ln -s %{install_bindir}/$filename %{buildroot}/%{_bindir}/$filename%{exec_suffix}
+done
+
+# Move header files
+mkdir -p %{buildroot}/%{pkg_includedir}
+ln -s %{install_includedir}/llvm %{buildroot}/%{pkg_includedir}/llvm
+ln -s %{install_includedir}/llvm-c %{buildroot}/%{pkg_includedir}/llvm-c
+
+# Fix multi-lib
+mv %{buildroot}%{_bindir}/llvm-config{%{exec_suffix},%{exec_suffix}-%{__isa_bits}}
+%multilib_fix_c_header --file %{install_includedir}/llvm/Config/llvm-config.h
+
+# Create ld.so.conf.d entry
+mkdir -p %{buildroot}%{_sysconfdir}/ld.so.conf.d
+cat >> %{buildroot}%{_sysconfdir}/ld.so.conf.d/%{name}-%{_arch}.conf << EOF
+%{pkg_libdir}
+EOF
+
+# Add version suffix to man pages and move them to mandir.
+mkdir -p %{buildroot}/%{_mandir}/man1
+for f in `ls %{buildroot}%{install_prefix}/share/man/man1/*`; do
+  filename=`basename $f | cut -f 1 -d '.'`
+  mv $f %{buildroot}%{_mandir}/man1/$filename%{exec_suffix}.1
+done
+
+# Remove opt-viewer, since this is just a compatibility package.
+rm -Rf %{buildroot}%{install_prefix}/share/opt-viewer
+
+%endif
 
 %check
 cd _build
@@ -167,6 +229,8 @@ ninja check-all || :
 
 %post libs -p /sbin/ldconfig
 %postun libs -p /sbin/ldconfig
+
+%if !0%{?compat_build}
 
 %post devel
 %{_sbindir}/update-alternatives --install %{_bindir}/llvm-config llvm-config %{_bindir}/llvm-config-%{__isa_bits} %{__isa_bits}
@@ -176,15 +240,23 @@ if [ $1 -eq 0 ]; then
   %{_sbindir}/update-alternatives --remove llvm-config %{_bindir}/llvm-config-%{__isa_bits}
 fi
 
+%endif
+
 %files
 %{_bindir}/*
 %{llvm_bindir}
 %{_mandir}/man1/*.1.*
+%if !0%{?compat_build}
 %exclude %{_bindir}/llvm-config-%{__isa_bits}
 %exclude %{_mandir}/man1/llvm-config.1.*
 %{_datadir}/opt-viewer
+%else
+%config(noreplace) %{_sysconfdir}/ld.so.conf.d/%{name}-%{_arch}.conf
+%exclude %{pkg_bindir}/llvm-config
+%endif
 
 %files libs
+%if !0%{?compat_build}
 %{_libdir}/BugpointPasses.so
 %{_libdir}/LLVMHello.so
 %if %{with gold}
@@ -192,8 +264,19 @@ fi
 %endif
 %{_libdir}/libLLVM-%{maj_ver}.%{min_ver}*.so
 %{_libdir}/libLTO.so*
+%else
+%{pkg_libdir}/BugpointPasses.so
+%{pkg_libdir}/LLVMHello.so
+%if %{with gold}
+%{_libdir}/%{name}/lib/LLVMgold.so
+%endif
+%{pkg_libdir}/libLLVM-%{maj_ver}.%{min_ver}*.so
+%{pkg_libdir}/libLTO.so*
+%exclude %{pkg_libdir}/libLTO.so
+%endif
 
 %files devel
+%if !0%{?compat_build}
 %{_bindir}/llvm-config-%{__isa_bits}
 %{_mandir}/man1/llvm-config.1.*
 %{_includedir}/llvm
@@ -201,15 +284,32 @@ fi
 %{_libdir}/libLLVM.so
 %{_libdir}/cmake/llvm
 %exclude %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
+%else
+%{_bindir}/llvm-config%{exec_suffix}-%{__isa_bits}
+%{pkg_bindir}/llvm-config
+%{_mandir}/man1/llvm-config%{exec_suffix}.1.gz
+%{pkg_includedir}/llvm
+%{pkg_includedir}/llvm-c
+%{pkg_libdir}/libLTO.so
+%{pkg_libdir}/libLLVM.so
+%{pkg_libdir}/cmake/llvm
+%endif
 
 %files doc
 %doc %{_pkgdocdir}/html
 
 %files static
+%if !0%{?compat_build}
 %{_libdir}/*.a
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
+%else
+%{_libdir}/%{name}/lib/*.a
+%endif
 
 %changelog
+* Fri Jul 13 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-3
+- Sync specfile with llvm6.0 package
+
 * Fri Jul 13 2018 Fedora Release Engineering <releng@fedoraproject.org> - 6.0.1-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
 
