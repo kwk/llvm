@@ -25,6 +25,8 @@ Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 Patch9:		0001-Export-LLVM_DYLIB_COMPONENTS-in-LLVMConfig.cmake.patch
 
+BuildRequires:  gcc
+BuildRequires:  gcc-c++
 BuildRequires:	cmake
 BuildRequires:	ninja-build
 BuildRequires:	zlib-devel
