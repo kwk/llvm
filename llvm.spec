@@ -30,7 +30,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	3%{?dist}
+Release:	5%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -198,8 +198,8 @@ done
 
 # Move header files
 mkdir -p %{buildroot}/%{pkg_includedir}
-ln -s %{install_includedir}/llvm %{buildroot}/%{pkg_includedir}/llvm
-ln -s %{install_includedir}/llvm-c %{buildroot}/%{pkg_includedir}/llvm-c
+ln -s ../../../%{install_includedir}/llvm %{buildroot}/%{pkg_includedir}/llvm
+ln -s ../../../%{install_includedir}/llvm-c %{buildroot}/%{pkg_includedir}/llvm-c
 
 # Fix multi-lib
 mv %{buildroot}%{_bindir}/llvm-config{%{exec_suffix},%{exec_suffix}-%{__isa_bits}}
@@ -244,15 +244,16 @@ fi
 
 %files
 %{_bindir}/*
-%{llvm_bindir}
 %{_mandir}/man1/*.1.*
 %if !0%{?compat_build}
+%{llvm_bindir}
 %exclude %{_bindir}/llvm-config-%{__isa_bits}
 %exclude %{_mandir}/man1/llvm-config.1.*
 %{_datadir}/opt-viewer
 %else
 %config(noreplace) %{_sysconfdir}/ld.so.conf.d/%{name}-%{_arch}.conf
 %exclude %{pkg_bindir}/llvm-config
+%{pkg_bindir}
 %endif
 
 %files libs
@@ -288,6 +289,8 @@ fi
 %{_bindir}/llvm-config%{exec_suffix}-%{__isa_bits}
 %{pkg_bindir}/llvm-config
 %{_mandir}/man1/llvm-config%{exec_suffix}.1.gz
+%{install_includedir}/llvm
+%{install_includedir}/llvm-c
 %{pkg_includedir}/llvm
 %{pkg_includedir}/llvm-c
 %{pkg_libdir}/libLTO.so
@@ -307,6 +310,12 @@ fi
 %endif
 
 %changelog
+* Thu Jul 26 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-5
+- Move libLLVM-6.0.so to llvm6.0-libs.
+
+* Mon Jul 23 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-4
+- Rebuild because debuginfo stripping failed with the previous build
+
 * Fri Jul 13 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-3
 - Sync specfile with llvm6.0 package
 
