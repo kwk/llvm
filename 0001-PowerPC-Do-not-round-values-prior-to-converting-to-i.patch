@@ -1,0 +1,919 @@
+From 88ad713b81c2f51dd8405b251f9825b0bca6e57d Mon Sep 17 00:00:00 2001
+From: Nemanja Ivanovic <nemanja.i.ibm@gmail.com>
+Date: Thu, 2 Aug 2018 00:03:22 +0000
+Subject: [PATCH] [PowerPC] Do not round values prior to converting to integer
+
+Adding the FP_ROUND nodes when combining FP_TO_[SU]INT of elements
+feeding a BUILD_VECTOR into an FP_TO_[SU]INT of the built vector
+loses precision. This patch removes the code that adds these nodes
+to true f64 operands. It also adds patterns required to ensure
+the code is still vectorized rather than converting individual
+elements and inserting into a vector.
+
+Fixes https://bugs.llvm.org/show_bug.cgi?id=38342
+
+Differential Revision: https://reviews.llvm.org/D50121
+
+git-svn-id: https://llvm.org/svn/llvm-project/llvm/trunk@338658 91177308-0d34-0410-b5e6-96231b3b80d8
+---
+ lib/Target/PowerPC/PPCISelLowering.cpp     |  22 +-
+ lib/Target/PowerPC/PPCInstrVSX.td          |  86 +++++++
+ test/CodeGen/PowerPC/build-vector-tests.ll | 357 +++++++++++++----------------
+ 3 files changed, 258 insertions(+), 207 deletions(-)
+
+diff --git a/lib/Target/PowerPC/PPCISelLowering.cpp b/lib/Target/PowerPC/PPCISelLowering.cpp
+index f622b05..527ec5a 100644
+--- a/lib/Target/PowerPC/PPCISelLowering.cpp
++++ b/lib/Target/PowerPC/PPCISelLowering.cpp
+@@ -11560,6 +11560,14 @@ SDValue PPCTargetLowering::DAGCombineExtBoolTrunc(SDNode *N,
+       ShiftCst);
+ }
+ 
++// Is this an extending load from an f32 to an f64?
++static bool isFPExtLoad(SDValue Op) {
++  if (LoadSDNode *LD = dyn_cast<LoadSDNode>(Op.getNode()))
++    return LD->getExtensionType() == ISD::EXTLOAD &&
++      Op.getValueType() == MVT::f64;
++  return false;
++}
++
+ /// \brief Reduces the number of fp-to-int conversion when building a vector.
+ ///
+ /// If this vector is built out of floating to integer conversions,
+@@ -11594,11 +11602,18 @@ combineElementTruncationToVectorTruncation(SDNode *N,
+     SmallVector<SDValue, 4> Ops;
+     EVT TargetVT = N->getValueType(0);
+     for (int i = 0, e = N->getNumOperands(); i < e; ++i) {
+-      if (N->getOperand(i).getOpcode() != PPCISD::MFVSR)
++      SDValue NextOp = N->getOperand(i);
++      if (NextOp.getOpcode() != PPCISD::MFVSR)
+         return SDValue();
+-      unsigned NextConversion = N->getOperand(i).getOperand(0).getOpcode();
++      unsigned NextConversion = NextOp.getOperand(0).getOpcode();
+       if (NextConversion != FirstConversion)
+         return SDValue();
++      // If we are converting to 32-bit integers, we need to add an FP_ROUND.
++      // This is not valid if the input was originally double precision. It is
++      // also not profitable to do unless this is an extending load in which
++      // case doing this combine will allow us to combine consecutive loads.
++      if (Is32Bit && !isFPExtLoad(NextOp.getOperand(0).getOperand(0)))
++        return SDValue();
+       if (N->getOperand(i) != FirstInput)
+         IsSplat = false;
+     }
+@@ -11612,8 +11627,9 @@ combineElementTruncationToVectorTruncation(SDNode *N,
+     // Now that we know we have the right type of node, get its operands
+     for (int i = 0, e = N->getNumOperands(); i < e; ++i) {
+       SDValue In = N->getOperand(i).getOperand(0);
+-      // For 32-bit values, we need to add an FP_ROUND node.
+       if (Is32Bit) {
++        // For 32-bit values, we need to add an FP_ROUND node (if we made it
++        // here, we know that all inputs are extending loads so this is safe).
+         if (In.isUndef())
+           Ops.push_back(DAG.getUNDEF(SrcVT));
+         else {
+diff --git a/lib/Target/PowerPC/PPCInstrVSX.td b/lib/Target/PowerPC/PPCInstrVSX.td
+index 6f71978..1f48473 100644
+--- a/lib/Target/PowerPC/PPCInstrVSX.td
++++ b/lib/Target/PowerPC/PPCInstrVSX.td
+@@ -3100,6 +3100,17 @@ def DblToFlt {
+   dag B1 = (f32 (fpround (f64 (extractelt v2f64:$B, 1))));
+ }
+ 
++def ExtDbl {
++  dag A0S = (i32 (PPCmfvsr (f64 (PPCfctiwz (f64 (extractelt v2f64:$A, 0))))));
++  dag A1S = (i32 (PPCmfvsr (f64 (PPCfctiwz (f64 (extractelt v2f64:$A, 1))))));
++  dag B0S = (i32 (PPCmfvsr (f64 (PPCfctiwz (f64 (extractelt v2f64:$B, 0))))));
++  dag B1S = (i32 (PPCmfvsr (f64 (PPCfctiwz (f64 (extractelt v2f64:$B, 1))))));
++  dag A0U = (i32 (PPCmfvsr (f64 (PPCfctiwuz (f64 (extractelt v2f64:$A, 0))))));
++  dag A1U = (i32 (PPCmfvsr (f64 (PPCfctiwuz (f64 (extractelt v2f64:$A, 1))))));
++  dag B0U = (i32 (PPCmfvsr (f64 (PPCfctiwuz (f64 (extractelt v2f64:$B, 0))))));
++  dag B1U = (i32 (PPCmfvsr (f64 (PPCfctiwuz (f64 (extractelt v2f64:$B, 1))))));
++}
++
+ def ByteToWord {
+   dag LE_A0 = (i32 (sext_inreg (i32 (vector_extract v16i8:$A, 0)), i8));
+   dag LE_A1 = (i32 (sext_inreg (i32 (vector_extract v16i8:$A, 4)), i8));
+@@ -3177,9 +3188,15 @@ def FltToULong {
+ }
+ def DblToInt {
+   dag A = (i32 (PPCmfvsr (f64 (PPCfctiwz f64:$A))));
++  dag B = (i32 (PPCmfvsr (f64 (PPCfctiwz f64:$B))));
++  dag C = (i32 (PPCmfvsr (f64 (PPCfctiwz f64:$C))));
++  dag D = (i32 (PPCmfvsr (f64 (PPCfctiwz f64:$D))));
+ }
+ def DblToUInt {
+   dag A = (i32 (PPCmfvsr (f64 (PPCfctiwuz f64:$A))));
++  dag B = (i32 (PPCmfvsr (f64 (PPCfctiwuz f64:$B))));
++  dag C = (i32 (PPCmfvsr (f64 (PPCfctiwuz f64:$C))));
++  dag D = (i32 (PPCmfvsr (f64 (PPCfctiwuz f64:$D))));
+ }
+ def DblToLong {
+   dag A = (i64 (PPCmfvsr (f64 (PPCfctidz f64:$A))));
+@@ -3218,6 +3235,47 @@ def MrgFP {
+   dag BAlToFlt = (XVCVDPSP (XXPERMDI $B, $A, 3));
+ }
+ 
++// Word-element merge dags - conversions from f64 to i32 merged into vectors.
++def MrgWords {
++  // For big endian, we merge low and hi doublewords (A, B).
++  dag A0B0 = (v2f64 (XXPERMDI v2f64:$A, v2f64:$B, 0));
++  dag A1B1 = (v2f64 (XXPERMDI v2f64:$A, v2f64:$B, 3));
++  dag CVA1B1S = (v4i32 (XVCVDPSXWS A1B1));
++  dag CVA0B0S = (v4i32 (XVCVDPSXWS A0B0));
++  dag CVA1B1U = (v4i32 (XVCVDPUXWS A1B1));
++  dag CVA0B0U = (v4i32 (XVCVDPUXWS A0B0));
++
++  // For little endian, we merge low and hi doublewords (B, A).
++  dag B1A1 = (v2f64 (XXPERMDI v2f64:$B, v2f64:$A, 0));
++  dag B0A0 = (v2f64 (XXPERMDI v2f64:$B, v2f64:$A, 3));
++  dag CVB1A1S = (v4i32 (XVCVDPSXWS B1A1));
++  dag CVB0A0S = (v4i32 (XVCVDPSXWS B0A0));
++  dag CVB1A1U = (v4i32 (XVCVDPUXWS B1A1));
++  dag CVB0A0U = (v4i32 (XVCVDPUXWS B0A0));
++
++  // For big endian, we merge hi doublewords of (A, C) and (B, D), convert
++  // then merge.
++  dag AC = (v2f64 (XXPERMDI (COPY_TO_REGCLASS f64:$A, VSRC),
++                            (COPY_TO_REGCLASS f64:$C, VSRC), 0));
++  dag BD = (v2f64 (XXPERMDI (COPY_TO_REGCLASS f64:$B, VSRC),
++                            (COPY_TO_REGCLASS f64:$D, VSRC), 0));
++  dag CVACS = (v4i32 (XVCVDPSXWS AC));
++  dag CVBDS = (v4i32 (XVCVDPSXWS BD));
++  dag CVACU = (v4i32 (XVCVDPUXWS AC));
++  dag CVBDU = (v4i32 (XVCVDPUXWS BD));
++
++  // For little endian, we merge hi doublewords of (D, B) and (C, A), convert
++  // then merge.
++  dag DB = (v2f64 (XXPERMDI (COPY_TO_REGCLASS f64:$D, VSRC),
++                            (COPY_TO_REGCLASS f64:$B, VSRC), 0));
++  dag CA = (v2f64 (XXPERMDI (COPY_TO_REGCLASS f64:$C, VSRC),
++                            (COPY_TO_REGCLASS f64:$A, VSRC), 0));
++  dag CVDBS = (v4i32 (XVCVDPSXWS DB));
++  dag CVCAS = (v4i32 (XVCVDPSXWS CA));
++  dag CVDBU = (v4i32 (XVCVDPUXWS DB));
++  dag CVCAU = (v4i32 (XVCVDPUXWS CA));
++}
++
+ // Patterns for BUILD_VECTOR nodes.
+ def NoP9Vector : Predicate<"!PPCSubTarget->hasP9Vector()">;
+ let AddedComplexity = 400 in {
+@@ -3286,6 +3344,20 @@ let AddedComplexity = 400 in {
+     def : Pat<(v4f32 (build_vector DblToFlt.A0, DblToFlt.A1,
+                                    DblToFlt.B0, DblToFlt.B1)),
+               (v4f32 (VMRGEW MrgFP.ABhToFlt, MrgFP.ABlToFlt))>;
++
++    // Convert 4 doubles to a vector of ints.
++    def : Pat<(v4i32 (build_vector DblToInt.A, DblToInt.B,
++                                   DblToInt.C, DblToInt.D)),
++              (v4i32 (VMRGEW MrgWords.CVACS, MrgWords.CVBDS))>;
++    def : Pat<(v4i32 (build_vector DblToUInt.A, DblToUInt.B,
++                                   DblToUInt.C, DblToUInt.D)),
++              (v4i32 (VMRGEW MrgWords.CVACU, MrgWords.CVBDU))>;
++    def : Pat<(v4i32 (build_vector ExtDbl.A0S, ExtDbl.A1S,
++                                   ExtDbl.B0S, ExtDbl.B1S)),
++              (v4i32 (VMRGEW MrgWords.CVA0B0S, MrgWords.CVA1B1S))>;
++    def : Pat<(v4i32 (build_vector ExtDbl.A0U, ExtDbl.A1U,
++                                   ExtDbl.B0U, ExtDbl.B1U)),
++              (v4i32 (VMRGEW MrgWords.CVA0B0U, MrgWords.CVA1B1U))>;
+   }
+ 
+   let Predicates = [IsLittleEndian, HasVSX] in {
+@@ -3300,6 +3372,20 @@ let AddedComplexity = 400 in {
+     def : Pat<(v4f32 (build_vector DblToFlt.A0, DblToFlt.A1,
+                                    DblToFlt.B0, DblToFlt.B1)),
+               (v4f32 (VMRGEW MrgFP.BAhToFlt, MrgFP.BAlToFlt))>;
++
++    // Convert 4 doubles to a vector of ints.
++    def : Pat<(v4i32 (build_vector DblToInt.A, DblToInt.B,
++                                   DblToInt.C, DblToInt.D)),
++              (v4i32 (VMRGEW MrgWords.CVDBS, MrgWords.CVCAS))>;
++    def : Pat<(v4i32 (build_vector DblToUInt.A, DblToUInt.B,
++                                   DblToUInt.C, DblToUInt.D)),
++              (v4i32 (VMRGEW MrgWords.CVDBU, MrgWords.CVCAU))>;
++    def : Pat<(v4i32 (build_vector ExtDbl.A0S, ExtDbl.A1S,
++                                   ExtDbl.B0S, ExtDbl.B1S)),
++              (v4i32 (VMRGEW MrgWords.CVB1A1S, MrgWords.CVB0A0S))>;
++    def : Pat<(v4i32 (build_vector ExtDbl.A0U, ExtDbl.A1U,
++                                   ExtDbl.B0U, ExtDbl.B1U)),
++              (v4i32 (VMRGEW MrgWords.CVB1A1U, MrgWords.CVB0A0U))>;
+   }
+ 
+   let Predicates = [HasDirectMove] in {
+diff --git a/test/CodeGen/PowerPC/build-vector-tests.ll b/test/CodeGen/PowerPC/build-vector-tests.ll
+index 16b562b..3785b2a 100644
+--- a/test/CodeGen/PowerPC/build-vector-tests.ll
++++ b/test/CodeGen/PowerPC/build-vector-tests.ll
+@@ -119,8 +119,8 @@
+ ;vector int spltCnstConvftoi() {                                              //
+ ;  return (vector int) 4.74f;                                                 //
+ ;}                                                                            //
+-;// P8: 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws                         //
+-;// P9: 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvdpsxws                         //
++;// P8: 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                                   //
++;// P9: 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                                   //
+ ;vector int fromRegsConvftoi(float a, float b, float c, float d) {            //
+ ;  return (vector int) { a, b, c, d };                                        //
+ ;}                                                                            //
+@@ -139,15 +139,15 @@
+ ;vector int fromDiffMemConsDConvftoi(float *ptr) {                            //
+ ;  return (vector int) { ptr[3], ptr[2], ptr[1], ptr[0] };                    //
+ ;}                                                                            //
+-;// P8: 4 x lxsspx, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws             //
+-;// P9: 4 x lxssp, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws              //
++;// P8: 4 x lxsspx, 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                       //
++;// P9: 4 x lxssp, 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                        //
+ ;// Note: if the consecutive loads learns to handle pre-inc, this can be:     //
+ ;//       sldi 2, load, xvcvspuxws                                            //
+ ;vector int fromDiffMemVarAConvftoi(float *arr, int elem) {                   //
+ ;  return (vector int) { arr[elem], arr[elem+1], arr[elem+2], arr[elem+3] };  //
+ ;}                                                                            //
+-;// P8: 4 x lxsspx, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws             //
+-;// P9: 4 x lxssp, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws              //
++;// P8: 4 x lxsspx, 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                       //
++;// P9: 4 x lxssp, 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                        //
+ ;// Note: if the consecutive loads learns to handle pre-inc, this can be:     //
+ ;//       sldi 2, 2 x load, vperm, xvcvspuxws                                 //
+ ;vector int fromDiffMemVarDConvftoi(float *arr, int elem) {                   //
+@@ -168,8 +168,8 @@
+ ;vector int spltCnstConvdtoi() {                                              //
+ ;  return (vector int) 4.74;                                                  //
+ ;}                                                                            //
+-;// P8: 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws                         //
+-;// P9: 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws                         //
++;// P8: 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                                   //
++;// P9: 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                                   //
+ ;vector int fromRegsConvdtoi(double a, double b, double c, double d) {        //
+ ;  return (vector int) { a, b, c, d };                                        //
+ ;}                                                                            //
+@@ -178,25 +178,23 @@
+ ;vector int fromDiffConstsConvdtoi() {                                        //
+ ;  return (vector int) { 24.46, 234., 988.19, 422.39 };                       //
+ ;}                                                                            //
+-;// P8: 2 x lxvd2x, 2 x xxswapd, xxmrgld, xxmrghd, 2 x xvcvdpsp, vmrgew,      //
+-;//     xvcvspsxws                                                            //
+-;// P9: 2 x lxvx, 2 x xxswapd, xxmrgld, xxmrghd, 2 x xvcvdpsp, vmrgew,        //
+-;//     xvcvspsxws                                                            //
++;// P8: 2 x lxvd2x, 2 x xxswapd, xxmrgld, xxmrghd, 2 x xvcvspsxws, vmrgew     //
++;// P9: 2 x lxvx, 2 x xxswapd, xxmrgld, xxmrghd, 2 x xvcvspsxws, vmrgew       //
+ ;vector int fromDiffMemConsAConvdtoi(double *ptr) {                           //
+ ;  return (vector int) { ptr[0], ptr[1], ptr[2], ptr[3] };                    //
+ ;}                                                                            //
+-;// P8: 4 x lxsdx, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws              //
+-;// P9: 4 x lfd, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws                //
++;// P8: 4 x lxsdx, 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                        //
++;// P9: 4 x lfd, 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                          //
+ ;vector int fromDiffMemConsDConvdtoi(double *ptr) {                           //
+ ;  return (vector int) { ptr[3], ptr[2], ptr[1], ptr[0] };                    //
+ ;}                                                                            //
+-;// P8: lfdux, 3 x lxsdx, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws       //
+-;// P9: lfdux, 3 x lfd, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws         //
++;// P8: lfdux, 3 x lxsdx, 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                 //
++;// P9: lfdux, 3 x lfd, 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                   //
+ ;vector int fromDiffMemVarAConvdtoi(double *arr, int elem) {                  //
+ ;  return (vector int) { arr[elem], arr[elem+1], arr[elem+2], arr[elem+3] };  //
+ ;}                                                                            //
+-;// P8: lfdux, 3 x lxsdx, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws       //
+-;// P9: lfdux, 3 x lfd, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspsxws         //
++;// P8: lfdux, 3 x lxsdx, 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                 //
++;// P9: lfdux, 3 x lfd, 2 x xxmrghd, 2 x xvcvspsxws, vmrgew                   //
+ ;vector int fromDiffMemVarDConvdtoi(double *arr, int elem) {                  //
+ ;  return (vector int) { arr[elem], arr[elem-1], arr[elem-2], arr[elem-3] };  //
+ ;}                                                                            //
+@@ -296,8 +294,8 @@
+ ;vector unsigned int spltCnstConvftoui() {                                    //
+ ;  return (vector unsigned int) 4.74f;                                        //
+ ;}                                                                            //
+-;// P8: 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws                         //
+-;// P9: 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws                         //
++;// P8: 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                                   //
++;// P9: 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                                   //
+ ;vector unsigned int fromRegsConvftoui(float a, float b, float c, float d) {  //
+ ;  return (vector unsigned int) { a, b, c, d };                               //
+ ;}                                                                            //
+@@ -316,16 +314,16 @@
+ ;vector unsigned int fromDiffMemConsDConvftoui(float *ptr) {                  //
+ ;  return (vector unsigned int) { ptr[3], ptr[2], ptr[1], ptr[0] };           //
+ ;}                                                                            //
+-;// P8: lfsux, 3 x lxsspx, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws      //
+-;// P9: lfsux, 3 x lfs, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws         //
++;// P8: lfsux, 3 x lxsspx, 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                //
++;// P9: lfsux, 3 x lfs, 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                   //
+ ;// Note: if the consecutive loads learns to handle pre-inc, this can be:     //
+ ;//       sldi 2, load, xvcvspuxws                                            //
+ ;vector unsigned int fromDiffMemVarAConvftoui(float *arr, int elem) {         //
+ ;  return (vector unsigned int) { arr[elem], arr[elem+1],                     //
+ ;                                 arr[elem+2], arr[elem+3] };                 //
+ ;}                                                                            //
+-;// P8: lfsux, 3 x lxsspx, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws      //
+-;// P9: lfsux, 3 x lfs, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws         //
++;// P8: lfsux, 3 x lxsspx, 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                //
++;// P9: lfsux, 3 x lfs, 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                   //
+ ;// Note: if the consecutive loads learns to handle pre-inc, this can be:     //
+ ;//       sldi 2, 2 x load, vperm, xvcvspuxws                                 //
+ ;vector unsigned int fromDiffMemVarDConvftoui(float *arr, int elem) {         //
+@@ -347,8 +345,8 @@
+ ;vector unsigned int spltCnstConvdtoui() {                                    //
+ ;  return (vector unsigned int) 4.74;                                         //
+ ;}                                                                            //
+-;// P8: 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws                         //
+-;// P9: 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws                         //
++;// P8: 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                                   //
++;// P9: 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                                   //
+ ;vector unsigned int fromRegsConvdtoui(double a, double b,                    //
+ ;                                      double c, double d) {                  //
+ ;  return (vector unsigned int) { a, b, c, d };                               //
+@@ -358,25 +356,24 @@
+ ;vector unsigned int fromDiffConstsConvdtoui() {                              //
+ ;  return (vector unsigned int) { 24.46, 234., 988.19, 422.39 };              //
+ ;}                                                                            //
+-;// P8: 2 x lxvd2x, 2 x xxswapd, xxmrgld, xxmrghd, 2 x xvcvdpsp, vmrgew,      //
+-;//     xvcvspuxws                                                            //
+-;// P9: 2 x lxvx, xxmrgld, xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws          //
++;// P8: 2 x lxvd2x, 2 x xxswapd, xxmrgld, xxmrghd, 2 x xvcvspuxws, vmrgew     //
++;// P9: 2 x lxvx, xxmrgld, xxmrghd, 2 x xvcvspuxws, vmrgew                    //
+ ;vector unsigned int fromDiffMemConsAConvdtoui(double *ptr) {                 //
+ ;  return (vector unsigned int) { ptr[0], ptr[1], ptr[2], ptr[3] };           //
+ ;}                                                                            //
+-;// P8: 4 x lxsdx, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws              //
+-;// P9: 4 x lfd, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws                //
++;// P8: 4 x lxsdx, 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                        //
++;// P9: 4 x lfd, 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                          //
+ ;vector unsigned int fromDiffMemConsDConvdtoui(double *ptr) {                 //
+ ;  return (vector unsigned int) { ptr[3], ptr[2], ptr[1], ptr[0] };           //
+ ;}                                                                            //
+-;// P8: lfdux, 3 x lxsdx, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws       //
+-;// P9: lfdux, 3 x lfd, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws         //
++;// P8: lfdux, 3 x lxsdx, 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                 //
++;// P9: lfdux, 3 x lfd, 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                   //
+ ;vector unsigned int fromDiffMemVarAConvdtoui(double *arr, int elem) {        //
+ ;  return (vector unsigned int) { arr[elem], arr[elem+1],                     //
+ ;                                 arr[elem+2], arr[elem+3] };                 //
+ ;}                                                                            //
+-;// P8: lfdux, 3 x lxsdx, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws       //
+-;// P9: lfdux, 3 x lfd, 2 x xxmrghd, 2 x xvcvdpsp, vmrgew, xvcvspuxws         //
++;// P8: lfdux, 3 x lxsdx, 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                 //
++;// P9: lfdux, 3 x lfd, 2 x xxmrghd, 2 x xvcvspuxws, vmrgew                   //
+ ;vector unsigned int fromDiffMemVarDConvdtoui(double *arr, int elem) {        //
+ ;  return (vector unsigned int) { arr[elem], arr[elem-1],                     //
+ ;                                 arr[elem-2], arr[elem-3] };                 //
+@@ -1253,28 +1250,24 @@ entry:
+ ; P8LE-LABEL: fromRegsConvftoi
+ ; P9BE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs1, vs3
+ ; P9BE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs2, vs4
+-; P9BE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P9BE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P9BE-DAG: xvcvdpsxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P9BE-DAG: xvcvdpsxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P9BE: vmrgew v2, [[REG3]], [[REG4]]
+-; P9BE: xvcvspsxws v2, v2
+ ; P9LE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs3, vs1
+ ; P9LE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs4, vs2
+-; P9LE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P9LE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P9LE-DAG: xvcvdpsxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P9LE-DAG: xvcvdpsxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P9LE: vmrgew v2, [[REG4]], [[REG3]]
+-; P9LE: xvcvspsxws v2, v2
+ ; P8BE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs1, vs3
+ ; P8BE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs2, vs4
+-; P8BE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P8BE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P8BE-DAG: xvcvdpsxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P8BE-DAG: xvcvdpsxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P8BE: vmrgew v2, [[REG3]], [[REG4]]
+-; P8BE: xvcvspsxws v2, v2
+ ; P8LE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs3, vs1
+ ; P8LE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs4, vs2
+-; P8LE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P8LE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P8LE-DAG: xvcvdpsxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P8LE-DAG: xvcvdpsxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P8LE: vmrgew v2, [[REG4]], [[REG3]]
+-; P8LE: xvcvspsxws v2, v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readnone
+@@ -1529,28 +1522,24 @@ entry:
+ ; P8LE-LABEL: fromRegsConvdtoi
+ ; P9BE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs1, vs3
+ ; P9BE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs2, vs4
+-; P9BE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P9BE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P9BE-DAG: xvcvdpsxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P9BE-DAG: xvcvdpsxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P9BE: vmrgew v2, [[REG3]], [[REG4]]
+-; P9BE: xvcvspsxws v2, v2
+ ; P9LE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs3, vs1
+ ; P9LE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs4, vs2
+-; P9LE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P9LE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P9LE-DAG: xvcvdpsxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P9LE-DAG: xvcvdpsxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P9LE: vmrgew v2, [[REG4]], [[REG3]]
+-; P9LE: xvcvspsxws v2, v2
+ ; P8BE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs1, vs3
+ ; P8BE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs2, vs4
+-; P8BE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P8BE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P8BE-DAG: xvcvdpsxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P8BE-DAG: xvcvdpsxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P8BE: vmrgew v2, [[REG3]], [[REG4]]
+-; P8BE: xvcvspsxws v2, v2
+ ; P8LE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs3, vs1
+ ; P8LE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs4, vs2
+-; P8LE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P8LE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P8LE-DAG: xvcvdpsxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P8LE-DAG: xvcvdpsxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P8LE: vmrgew v2, [[REG4]], [[REG3]]
+-; P8LE: xvcvspsxws v2, v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readnone
+@@ -1592,36 +1581,32 @@ entry:
+ ; P9BE-DAG: lxv [[REG2:[vs0-9]+]], 16(r3)
+ ; P9BE-DAG: xxmrgld [[REG3:[vs0-9]+]], [[REG1]], [[REG2]]
+ ; P9BE-DAG: xxmrghd [[REG4:[vs0-9]+]], [[REG1]], [[REG2]]
+-; P9BE-DAG: xvcvdpsp [[REG5:[vs0-9]+]], [[REG3]]
+-; P9BE-DAG: xvcvdpsp [[REG6:[vs0-9]+]], [[REG4]]
++; P9BE-DAG: xvcvdpsxws [[REG5:[vs0-9]+]], [[REG3]]
++; P9BE-DAG: xvcvdpsxws [[REG6:[vs0-9]+]], [[REG4]]
+ ; P9BE: vmrgew v2, [[REG6]], [[REG5]]
+-; P9BE: xvcvspsxws v2, v2
+ ; P9LE-DAG: lxv [[REG1:[vs0-9]+]], 0(r3)
+ ; P9LE-DAG: lxv [[REG2:[vs0-9]+]], 16(r3)
+ ; P9LE-DAG: xxmrgld [[REG3:[vs0-9]+]], [[REG2]], [[REG1]]
+ ; P9LE-DAG: xxmrghd [[REG4:[vs0-9]+]], [[REG2]], [[REG1]]
+-; P9LE-DAG: xvcvdpsp [[REG5:[vs0-9]+]], [[REG3]]
+-; P9LE-DAG: xvcvdpsp [[REG6:[vs0-9]+]], [[REG4]]
++; P9LE-DAG: xvcvdpsxws [[REG5:[vs0-9]+]], [[REG3]]
++; P9LE-DAG: xvcvdpsxws [[REG6:[vs0-9]+]], [[REG4]]
+ ; P9LE: vmrgew v2, [[REG6]], [[REG5]]
+-; P9LE: xvcvspsxws v2, v2
+ ; P8BE: lxvd2x [[REG1:[vs0-9]+]], 0, r3
+ ; P8BE: lxvd2x [[REG2:[vs0-9]+]], r3, r4
+ ; P8BE-DAG: xxmrgld [[REG3:[vs0-9]+]], [[REG1]], [[REG2]]
+ ; P8BE-DAG: xxmrghd [[REG4:[vs0-9]+]], [[REG1]], [[REG2]]
+-; P8BE-DAG: xvcvdpsp [[REG5:[vs0-9]+]], [[REG3]]
+-; P8BE-DAG: xvcvdpsp [[REG6:[vs0-9]+]], [[REG4]]
++; P8BE-DAG: xvcvdpsxws [[REG5:[vs0-9]+]], [[REG3]]
++; P8BE-DAG: xvcvdpsxws [[REG6:[vs0-9]+]], [[REG4]]
+ ; P8BE: vmrgew v2, [[REG6]], [[REG5]]
+-; P8BE: xvcvspsxws v2, v2
+ ; P8LE: lxvd2x [[REG1:[vs0-9]+]], 0, r3
+ ; P8LE: lxvd2x [[REG2:[vs0-9]+]], r3, r4
+ ; P8LE-DAG: xxswapd [[REG3:[vs0-9]+]], [[REG1]]
+ ; P8LE-DAG: xxswapd [[REG4:[vs0-9]+]], [[REG2]]
+ ; P8LE-DAG: xxmrgld [[REG5:[vs0-9]+]], [[REG4]], [[REG3]]
+ ; P8LE-DAG: xxmrghd [[REG6:[vs0-9]+]], [[REG4]], [[REG3]]
+-; P8LE-DAG: xvcvdpsp [[REG7:[vs0-9]+]], [[REG5]]
+-; P8LE-DAG: xvcvdpsp [[REG8:[vs0-9]+]], [[REG6]]
++; P8LE-DAG: xvcvdpsxws [[REG7:[vs0-9]+]], [[REG5]]
++; P8LE-DAG: xvcvdpsxws [[REG8:[vs0-9]+]], [[REG6]]
+ ; P8LE: vmrgew v2, [[REG8]], [[REG7]]
+-; P8LE: xvcvspsxws v2, v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readonly
+@@ -1653,40 +1638,36 @@ entry:
+ ; P9BE: lfd
+ ; P9BE: xxmrghd
+ ; P9BE: xxmrghd
+-; P9BE: xvcvdpsp
+-; P9BE: xvcvdpsp
+-; P9BE: vmrgew
+-; P9BE: xvcvspsxws v2
++; P9BE: xvcvdpsxws
++; P9BE: xvcvdpsxws
++; P9BE: vmrgew v2
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: xxmrghd
+ ; P9LE: xxmrghd
+-; P9LE: xvcvdpsp
+-; P9LE: xvcvdpsp
+-; P9LE: vmrgew
+-; P9LE: xvcvspsxws v2
++; P9LE: xvcvdpsxws
++; P9LE: xvcvdpsxws
++; P9LE: vmrgew v2
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: xxmrghd
+ ; P8BE: xxmrghd
+-; P8BE: xvcvdpsp
+-; P8BE: xvcvdpsp
+-; P8BE: vmrgew
+-; P8BE: xvcvspsxws v2
++; P8BE: xvcvdpsxws
++; P8BE: xvcvdpsxws
++; P8BE: vmrgew v2
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: xxmrghd
+ ; P8LE: xxmrghd
+-; P8LE: xvcvdpsp
+-; P8LE: xvcvdpsp
+-; P8LE: vmrgew
+-; P8LE: xvcvspsxws v2
++; P8LE: xvcvdpsxws
++; P8LE: xvcvdpsxws
++; P8LE: vmrgew v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readonly
+@@ -1726,40 +1707,36 @@ entry:
+ ; P9BE: lfd
+ ; P9BE: xxmrghd
+ ; P9BE: xxmrghd
+-; P9BE: xvcvdpsp
+-; P9BE: xvcvdpsp
+-; P9BE: vmrgew
+-; P9BE: xvcvspsxws v2
++; P9BE: xvcvdpsxws
++; P9BE: xvcvdpsxws
++; P9BE: vmrgew v2
+ ; P9LE: lfdux
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: xxmrghd
+ ; P9LE: xxmrghd
+-; P9LE: xvcvdpsp
+-; P9LE: xvcvdpsp
+-; P9LE: vmrgew
+-; P9LE: xvcvspsxws v2
++; P9LE: xvcvdpsxws
++; P9LE: xvcvdpsxws
++; P9LE: vmrgew v2
+ ; P8BE: lfdux
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: xxmrghd
+ ; P8BE: xxmrghd
+-; P8BE: xvcvdpsp
+-; P8BE: xvcvdpsp
+-; P8BE: vmrgew
+-; P8BE: xvcvspsxws v2
++; P8BE: xvcvdpsxws
++; P8BE: xvcvdpsxws
++; P8BE: vmrgew v2
+ ; P8LE: lfdux
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: xxmrghd
+ ; P8LE: xxmrghd
+-; P8LE: xvcvdpsp
+-; P8LE: xvcvdpsp
+-; P8LE: vmrgew
+-; P8LE: xvcvspsxws v2
++; P8LE: xvcvdpsxws
++; P8LE: xvcvdpsxws
++; P8LE: vmrgew v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readonly
+@@ -1799,40 +1776,36 @@ entry:
+ ; P9BE: lfd
+ ; P9BE: xxmrghd
+ ; P9BE: xxmrghd
+-; P9BE: xvcvdpsp
+-; P9BE: xvcvdpsp
+-; P9BE: vmrgew
+-; P9BE: xvcvspsxws v2
++; P9BE: xvcvdpsxws
++; P9BE: xvcvdpsxws
++; P9BE: vmrgew v2
+ ; P9LE: lfdux
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: xxmrghd
+ ; P9LE: xxmrghd
+-; P9LE: xvcvdpsp
+-; P9LE: xvcvdpsp
+-; P9LE: vmrgew
+-; P9LE: xvcvspsxws v2
++; P9LE: xvcvdpsxws
++; P9LE: xvcvdpsxws
++; P9LE: vmrgew v2
+ ; P8BE: lfdux
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: xxmrghd
+ ; P8BE: xxmrghd
+-; P8BE: xvcvdpsp
+-; P8BE: xvcvdpsp
+-; P8BE: vmrgew
+-; P8BE: xvcvspsxws v2
++; P8BE: xvcvdpsxws
++; P8BE: xvcvdpsxws
++; P8BE: vmrgew v2
+ ; P8LE: lfdux
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: xxmrghd
+ ; P8LE: xxmrghd
+-; P8LE: xvcvdpsp
+-; P8LE: xvcvdpsp
+-; P8LE: vmrgew
+-; P8LE: xvcvspsxws v2
++; P8LE: xvcvdpsxws
++; P8LE: xvcvdpsxws
++; P8LE: vmrgew v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readnone
+@@ -2413,28 +2386,24 @@ entry:
+ ; P8LE-LABEL: fromRegsConvftoui
+ ; P9BE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs1, vs3
+ ; P9BE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs2, vs4
+-; P9BE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P9BE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P9BE-DAG: xvcvdpuxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P9BE-DAG: xvcvdpuxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P9BE: vmrgew v2, [[REG3]], [[REG4]]
+-; P9BE: xvcvspuxws v2, v2
+ ; P9LE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs3, vs1
+ ; P9LE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs4, vs2
+-; P9LE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P9LE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P9LE-DAG: xvcvdpuxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P9LE-DAG: xvcvdpuxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P9LE: vmrgew v2, [[REG4]], [[REG3]]
+-; P9LE: xvcvspuxws v2, v2
+ ; P8BE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs1, vs3
+ ; P8BE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs2, vs4
+-; P8BE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P8BE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P8BE-DAG: xvcvdpuxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P8BE-DAG: xvcvdpuxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P8BE: vmrgew v2, [[REG3]], [[REG4]]
+-; P8BE: xvcvspuxws v2, v2
+ ; P8LE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs3, vs1
+ ; P8LE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs4, vs2
+-; P8LE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P8LE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P8LE-DAG: xvcvdpuxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P8LE-DAG: xvcvdpuxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P8LE: vmrgew v2, [[REG4]], [[REG3]]
+-; P8LE: xvcvspuxws v2, v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readnone
+@@ -2689,28 +2658,24 @@ entry:
+ ; P8LE-LABEL: fromRegsConvdtoui
+ ; P9BE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs1, vs3
+ ; P9BE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs2, vs4
+-; P9BE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P9BE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P9BE-DAG: xvcvdpuxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P9BE-DAG: xvcvdpuxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P9BE: vmrgew v2, [[REG3]], [[REG4]]
+-; P9BE: xvcvspuxws v2, v2
+ ; P9LE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs3, vs1
+ ; P9LE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs4, vs2
+-; P9LE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P9LE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P9LE-DAG: xvcvdpuxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P9LE-DAG: xvcvdpuxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P9LE: vmrgew v2, [[REG4]], [[REG3]]
+-; P9LE: xvcvspuxws v2, v2
+ ; P8BE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs1, vs3
+ ; P8BE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs2, vs4
+-; P8BE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P8BE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P8BE-DAG: xvcvdpuxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P8BE-DAG: xvcvdpuxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P8BE: vmrgew v2, [[REG3]], [[REG4]]
+-; P8BE: xvcvspuxws v2, v2
+ ; P8LE-DAG: xxmrghd {{[vs]+}}[[REG1:[0-9]+]], vs3, vs1
+ ; P8LE-DAG: xxmrghd {{[vs]+}}[[REG2:[0-9]+]], vs4, vs2
+-; P8LE-DAG: xvcvdpsp [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
+-; P8LE-DAG: xvcvdpsp [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
++; P8LE-DAG: xvcvdpuxws [[REG3:v[0-9]+]], {{[vs]+}}[[REG1]]
++; P8LE-DAG: xvcvdpuxws [[REG4:v[0-9]+]], {{[vs]+}}[[REG2]]
+ ; P8LE: vmrgew v2, [[REG4]], [[REG3]]
+-; P8LE: xvcvspuxws v2, v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readnone
+@@ -2752,36 +2717,32 @@ entry:
+ ; P9BE-DAG: lxv [[REG2:[vs0-9]+]], 16(r3)
+ ; P9BE-DAG: xxmrgld [[REG3:[vs0-9]+]], [[REG1]], [[REG2]]
+ ; P9BE-DAG: xxmrghd [[REG4:[vs0-9]+]], [[REG1]], [[REG2]]
+-; P9BE-DAG: xvcvdpsp [[REG5:[vs0-9]+]], [[REG3]]
+-; P9BE-DAG: xvcvdpsp [[REG6:[vs0-9]+]], [[REG4]]
++; P9BE-DAG: xvcvdpuxws [[REG5:[vs0-9]+]], [[REG3]]
++; P9BE-DAG: xvcvdpuxws [[REG6:[vs0-9]+]], [[REG4]]
+ ; P9BE: vmrgew v2, [[REG6]], [[REG5]]
+-; P9BE: xvcvspuxws v2, v2
+ ; P9LE-DAG: lxv [[REG1:[vs0-9]+]], 0(r3)
+ ; P9LE-DAG: lxv [[REG2:[vs0-9]+]], 16(r3)
+-; P9LE-DAG: xxmrgld [[REG3:[vs0-9]+]], [[REG2]], [[REG1]]
+ ; P9LE-DAG: xxmrghd [[REG4:[vs0-9]+]], [[REG2]], [[REG1]]
+-; P9LE-DAG: xvcvdpsp [[REG5:[vs0-9]+]], [[REG3]]
+-; P9LE-DAG: xvcvdpsp [[REG6:[vs0-9]+]], [[REG4]]
++; P9LE-DAG: xxmrgld [[REG3:[vs0-9]+]], [[REG2]], [[REG1]]
++; P9LE-DAG: xvcvdpuxws [[REG5:[vs0-9]+]], [[REG3]]
++; P9LE-DAG: xvcvdpuxws [[REG6:[vs0-9]+]], [[REG4]]
+ ; P9LE: vmrgew v2, [[REG6]], [[REG5]]
+-; P9LE: xvcvspuxws v2, v2
+ ; P8BE: lxvd2x [[REG1:[vs0-9]+]], 0, r3
+ ; P8BE: lxvd2x [[REG2:[vs0-9]+]], r3, r4
+ ; P8BE-DAG: xxmrgld [[REG3:[vs0-9]+]], [[REG1]], [[REG2]]
+ ; P8BE-DAG: xxmrghd [[REG4:[vs0-9]+]], [[REG1]], [[REG2]]
+-; P8BE-DAG: xvcvdpsp [[REG5:[vs0-9]+]], [[REG3]]
+-; P8BE-DAG: xvcvdpsp [[REG6:[vs0-9]+]], [[REG4]]
++; P8BE-DAG: xvcvdpuxws [[REG5:[vs0-9]+]], [[REG3]]
++; P8BE-DAG: xvcvdpuxws [[REG6:[vs0-9]+]], [[REG4]]
+ ; P8BE: vmrgew v2, [[REG6]], [[REG5]]
+-; P8BE: xvcvspuxws v2, v2
+ ; P8LE: lxvd2x [[REG1:[vs0-9]+]], 0, r3
+ ; P8LE: lxvd2x [[REG2:[vs0-9]+]], r3, r4
+ ; P8LE-DAG: xxswapd [[REG3:[vs0-9]+]], [[REG1]]
+ ; P8LE-DAG: xxswapd [[REG4:[vs0-9]+]], [[REG2]]
+ ; P8LE-DAG: xxmrgld [[REG5:[vs0-9]+]], [[REG4]], [[REG3]]
+ ; P8LE-DAG: xxmrghd [[REG6:[vs0-9]+]], [[REG4]], [[REG3]]
+-; P8LE-DAG: xvcvdpsp [[REG7:[vs0-9]+]], [[REG5]]
+-; P8LE-DAG: xvcvdpsp [[REG8:[vs0-9]+]], [[REG6]]
++; P8LE-DAG: xvcvdpuxws [[REG7:[vs0-9]+]], [[REG5]]
++; P8LE-DAG: xvcvdpuxws [[REG8:[vs0-9]+]], [[REG6]]
+ ; P8LE: vmrgew v2, [[REG8]], [[REG7]]
+-; P8LE: xvcvspuxws v2, v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readonly
+@@ -2813,40 +2774,36 @@ entry:
+ ; P9BE: lfd
+ ; P9BE: xxmrghd
+ ; P9BE: xxmrghd
+-; P9BE: xvcvdpsp
+-; P9BE: xvcvdpsp
+-; P9BE: vmrgew
+-; P9BE: xvcvspuxws v2
++; P9BE: xvcvdpuxws
++; P9BE: xvcvdpuxws
++; P9BE: vmrgew v2
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: xxmrghd
+ ; P9LE: xxmrghd
+-; P9LE: xvcvdpsp
+-; P9LE: xvcvdpsp
+-; P9LE: vmrgew
+-; P9LE: xvcvspuxws v2
++; P9LE: xvcvdpuxws
++; P9LE: xvcvdpuxws
++; P9LE: vmrgew v2
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: xxmrghd
+ ; P8BE: xxmrghd
+-; P8BE: xvcvdpsp
+-; P8BE: xvcvdpsp
+-; P8BE: vmrgew
+-; P8BE: xvcvspuxws v2
++; P8BE: xvcvdpuxws
++; P8BE: xvcvdpuxws
++; P8BE: vmrgew v2
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: xxmrghd
+ ; P8LE: xxmrghd
+-; P8LE: xvcvdpsp
+-; P8LE: xvcvdpsp
+-; P8LE: vmrgew
+-; P8LE: xvcvspuxws v2
++; P8LE: xvcvdpuxws
++; P8LE: xvcvdpuxws
++; P8LE: vmrgew v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readonly
+@@ -2886,40 +2843,36 @@ entry:
+ ; P9BE: lfd
+ ; P9BE: xxmrghd
+ ; P9BE: xxmrghd
+-; P9BE: xvcvdpsp
+-; P9BE: xvcvdpsp
+-; P9BE: vmrgew
+-; P9BE: xvcvspuxws v2
++; P9BE: xvcvdpuxws
++; P9BE: xvcvdpuxws
++; P9BE: vmrgew v2
+ ; P9LE: lfdux
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: xxmrghd
+ ; P9LE: xxmrghd
+-; P9LE: xvcvdpsp
+-; P9LE: xvcvdpsp
+-; P9LE: vmrgew
+-; P9LE: xvcvspuxws v2
++; P9LE: xvcvdpuxws
++; P9LE: xvcvdpuxws
++; P9LE: vmrgew v2
+ ; P8BE: lfdux
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: xxmrghd
+ ; P8BE: xxmrghd
+-; P8BE: xvcvdpsp
+-; P8BE: xvcvdpsp
+-; P8BE: vmrgew
+-; P8BE: xvcvspuxws v2
++; P8BE: xvcvdpuxws
++; P8BE: xvcvdpuxws
++; P8BE: vmrgew v2
+ ; P8LE: lfdux
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: xxmrghd
+ ; P8LE: xxmrghd
+-; P8LE: xvcvdpsp
+-; P8LE: xvcvdpsp
+-; P8LE: vmrgew
+-; P8LE: xvcvspuxws v2
++; P8LE: xvcvdpuxws
++; P8LE: xvcvdpuxws
++; P8LE: vmrgew v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readonly
+@@ -2959,40 +2912,36 @@ entry:
+ ; P9BE: lfd
+ ; P9BE: xxmrghd
+ ; P9BE: xxmrghd
+-; P9BE: xvcvdpsp
+-; P9BE: xvcvdpsp
+-; P9BE: vmrgew
+-; P9BE: xvcvspuxws v2
++; P9BE: xvcvdpuxws
++; P9BE: xvcvdpuxws
++; P9BE: vmrgew v2
+ ; P9LE: lfdux
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: lfd
+ ; P9LE: xxmrghd
+ ; P9LE: xxmrghd
+-; P9LE: xvcvdpsp
+-; P9LE: xvcvdpsp
+-; P9LE: vmrgew
+-; P9LE: xvcvspuxws v2
++; P9LE: xvcvdpuxws
++; P9LE: xvcvdpuxws
++; P9LE: vmrgew v2
+ ; P8BE: lfdux
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: lxsdx
+ ; P8BE: xxmrghd
+ ; P8BE: xxmrghd
+-; P8BE: xvcvdpsp
+-; P8BE: xvcvdpsp
+-; P8BE: vmrgew
+-; P8BE: xvcvspuxws v2
++; P8BE: xvcvdpuxws
++; P8BE: xvcvdpuxws
++; P8BE: vmrgew v2
+ ; P8LE: lfdux
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: lxsdx
+ ; P8LE: xxmrghd
+ ; P8LE: xxmrghd
+-; P8LE: xvcvdpsp
+-; P8LE: xvcvdpsp
+-; P8LE: vmrgew
+-; P8LE: xvcvspuxws v2
++; P8LE: xvcvdpuxws
++; P8LE: xvcvdpuxws
++; P8LE: vmrgew v2
+ }
+ 
+ ; Function Attrs: norecurse nounwind readnone
+-- 
+1.8.3.1
+

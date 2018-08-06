@@ -30,7 +30,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	5%{?dist}
+Release:	6%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -42,6 +42,10 @@ Patch0:		llvm-3.7.1-cmake-s390.patch
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 Patch9:		0001-Export-LLVM_DYLIB_COMPONENTS-in-LLVMConfig.cmake.patch
+
+Patch10:	0001-Don-t-run-BV-DAG-Combine-before-legalization-if-it-a.patch
+Patch11:	0001-PowerPC-Do-not-round-values-prior-to-converting-to-i.patch
+Patch12:	0001-SystemZ-TableGen-Fix-shift-count-handling.patch
 
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
@@ -310,6 +314,9 @@ fi
 %endif
 
 %changelog
+* Mon Aug 06 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-6
+- Backport some fixes needed by mesa and rust
+
 * Thu Jul 26 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-5
 - Move libLLVM-6.0.so to llvm6.0-libs.
 
