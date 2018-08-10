@@ -8,9 +8,26 @@
 %global compat_build 0
 
 %global llvm_bindir %{_libdir}/%{name}
-%global maj_ver 6
+%global maj_ver 7
 %global min_ver 0
-%global patch_ver 1
+%global patch_ver 0
+%global rc_ver 1
+
+%ifarch s390x
+%global llvm_targets SystemZ;BPF
+%endif
+%ifarch ppc64 ppc64le
+%global llvm_targets PowerPC;AMDGPU;BPF
+%endif
+%ifarch %ix86 x86_64
+%global llvm_targets X86;AMDGPU;NVPTX;BPF
+%endif
+%ifarch aarch64
+%global llvm_targets AArch64;AMDGPU;BPF
+%endif
+%ifarch %{arm}
+%global llvm_targets ARM;BPF
+%endif
 
 %if 0%{?compat_build}
 %global pkg_name llvm%{maj_ver}.%{min_ver}
@@ -26,26 +43,24 @@
 %else
 %global pkg_name llvm
 %global install_prefix /usr
+%global install_libdir %{_libdir}
+%global pkg_libdir %{install_libdir}
 %endif
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	6%{?dist}
+Release:	0.1.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
 URL:		http://llvm.org
-Source0:	http://llvm.org/releases/%{version}/llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src.tar.xz
+Source0:	http://%{?rc_ver:pre}releases.llvm.org/%{version}/%{?rc_ver:rc%{rc_ver}}/llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src.tar.xz
 
 # recognize s390 as SystemZ when configuring build
-Patch0:		llvm-3.7.1-cmake-s390.patch
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
-Patch9:		0001-Export-LLVM_DYLIB_COMPONENTS-in-LLVMConfig.cmake.patch
 
 Patch10:	0001-Don-t-run-BV-DAG-Combine-before-legalization-if-it-a.patch
-Patch11:	0001-PowerPC-Do-not-round-values-prior-to-converting-to-i.patch
-Patch12:	0001-SystemZ-TableGen-Fix-shift-count-handling.patch
 
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
@@ -135,7 +150,7 @@ cd _build
 %endif
 %endif
 	\
-	-DLLVM_TARGETS_TO_BUILD="X86;AMDGPU;PowerPC;NVPTX;SystemZ;AArch64;ARM;Mips;BPF" \
+	-DLLVM_TARGETS_TO_BUILD="%{llvm_targets}" \
 	-DLLVM_ENABLE_LIBCXX:BOOL=OFF \
 	-DLLVM_ENABLE_ZLIB:BOOL=ON \
 	-DLLVM_ENABLE_FFI:BOOL=ON \
@@ -184,6 +199,9 @@ ninja -v
 %install
 cd _build
 ninja -v install
+
+# FIXME: Patch upstream to not install this
+rm %{buildroot}%{install_libdir}/TestPlugin.so
 
 %if !0%{?compat_build}
 # fix multi-lib
@@ -261,6 +279,7 @@ fi
 %endif
 
 %files libs
+%{pkg_libdir}/libLLVM-%{maj_ver}.so
 %if !0%{?compat_build}
 %{_libdir}/BugpointPasses.so
 %{_libdir}/LLVMHello.so
@@ -314,6 +333,11 @@ fi
 %endif
 
 %changelog
+* Fri Aug 10 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.1.rc1
+- 7.0.0-rc1 Release
+- Reduce number of enabled targets on all arches.
+- Drop s390 detection patch, LLVM does not support s390 codegen.
+
 * Mon Aug 06 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-6
 - Backport some fixes needed by mesa and rust
 
