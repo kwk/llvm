@@ -49,7 +49,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.1.rc%{rc_ver}%{?dist}
+Release:	0.2.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -60,6 +60,7 @@ Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 
 Patch10:	0001-Don-t-run-BV-DAG-Combine-before-legalization-if-it-a.patch
+Patch11:	0001-gold-Fix-Tests-cases-on-i686.patch
 
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
@@ -68,6 +69,8 @@ BuildRequires:	ninja-build
 BuildRequires:	zlib-devel
 BuildRequires:  libffi-devel
 BuildRequires:	ncurses-devel
+# We need /usr/bin/python for some lit tests to work.
+BuildRequires:	python-unversioned-command
 BuildRequires:	python3-sphinx
 BuildRequires:	multilib-rpm-config
 %if %{with gold}
@@ -332,6 +335,9 @@ fi
 %endif
 
 %changelog
+* Fri Aug 10 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.2.rc1
+- Fixes for lit tests
+
 * Fri Aug 10 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.1.rc1
 - 7.0.0-rc1 Release
 - Reduce number of enabled targets on all arches.

@@ -1,0 +1,103 @@
+From bda67d3141acf120df8db57052603e9a18d86523 Mon Sep 17 00:00:00 2001
+From: Tom Stellard <tstellar@redhat.com>
+Date: Fri, 10 Aug 2018 14:54:17 -0700
+Subject: [PATCH] [gold] Fix Tests cases on i686
+
+---
+ test/tools/gold/X86/common.ll       | 10 +++++-----
+ test/tools/gold/X86/v1.16/wrap-1.ll |  4 ++--
+ test/tools/gold/X86/v1.16/wrap-2.ll |  4 ++--
+ 3 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/test/tools/gold/X86/common.ll b/test/tools/gold/X86/common.ll
+index 1debe78..d8b4e03 100644
+--- a/test/tools/gold/X86/common.ll
++++ b/test/tools/gold/X86/common.ll
+@@ -8,7 +8,7 @@ target triple = "x86_64-unknown-linux-gnu"
+ 
+ @a = common global i16 0, align 8
+ 
+-; RUN: %gold -plugin %llvmshlibdir/LLVMgold%shlibext \
++; RUN: %gold -m elf_x86_64 -plugin %llvmshlibdir/LLVMgold%shlibext \
+ ; RUN:    --plugin-opt=emit-llvm \
+ ; RUN:    -shared %t1.o %t2.o -o %t3.o
+ ; RUN: llvm-dis %t3.o -o - | FileCheck %s --check-prefix=A
+@@ -16,7 +16,7 @@ target triple = "x86_64-unknown-linux-gnu"
+ ; Shared library case, we merge @a as common and keep it for the symbol table.
+ ; A: @a = common global [4 x i8] zeroinitializer, align 8
+ 
+-; RUN: %gold -plugin %llvmshlibdir/LLVMgold%shlibext \
++; RUN: %gold -m elf_x86_64 -plugin %llvmshlibdir/LLVMgold%shlibext \
+ ; RUN:    --plugin-opt=emit-llvm \
+ ; RUN:    -shared %t1.o %t2b.o -o %t3.o
+ ; RUN: llvm-dis %t3.o -o - | FileCheck %s --check-prefix=B
+@@ -24,7 +24,7 @@ target triple = "x86_64-unknown-linux-gnu"
+ ; (i16 align 8) + (i8 align 16) = i16 align 16
+ ; B: @a = common global i16 0, align 16
+ 
+-; RUN: %gold -plugin %llvmshlibdir/LLVMgold%shlibext \
++; RUN: %gold -m elf_x86_64 -plugin %llvmshlibdir/LLVMgold%shlibext \
+ ; RUN:    --plugin-opt=emit-llvm \
+ ; RUN:    -shared %t1.o %t2c.o -o %t3.o
+ ; RUN: llvm-dis %t3.o -o - | FileCheck %s --check-prefix=C
+@@ -32,7 +32,7 @@ target triple = "x86_64-unknown-linux-gnu"
+ ; (i16 align 8) + (i8 align 1) = i16 align 8.
+ ; C: @a = common global i16 0, align 8
+ 
+-; RUN: %gold -plugin %llvmshlibdir/LLVMgold%shlibext \
++; RUN: %gold -m elf_x86_64 -plugin %llvmshlibdir/LLVMgold%shlibext \
+ ; RUN:    --plugin-opt=emit-llvm \
+ ; RUN:    %t1.o %t2.o -o %t3.o
+ ; RUN: llvm-dis %t3.o -o - | FileCheck --check-prefix=EXEC %s
+@@ -41,7 +41,7 @@ target triple = "x86_64-unknown-linux-gnu"
+ ; EXEC: @a = internal global [4 x i8] zeroinitializer, align 8
+ 
+ ; RUN: llc %p/Inputs/common.ll -o %t2native.o -filetype=obj
+-; RUN: %gold -plugin %llvmshlibdir/LLVMgold%shlibext \
++; RUN: %gold -m elf_x86_64 -plugin %llvmshlibdir/LLVMgold%shlibext \
+ ; RUN:    --plugin-opt=emit-llvm \
+ ; RUN:    %t1.o %t2native.o -o %t3.o
+ ; RUN: llvm-dis %t3.o -o - | FileCheck --check-prefix=MIXED %s
+diff --git a/test/tools/gold/X86/v1.16/wrap-1.ll b/test/tools/gold/X86/v1.16/wrap-1.ll
+index 5ea83b0..806442e 100644
+--- a/test/tools/gold/X86/v1.16/wrap-1.ll
++++ b/test/tools/gold/X86/v1.16/wrap-1.ll
+@@ -1,12 +1,12 @@
+ ; LTO
+ ; RUN: llvm-as %s -o %t.o
+-; RUN: %gold -plugin %llvmshlibdir/LLVMgold%shlibext %t.o -o %t.out -wrap=bar -plugin-opt=save-temps
++; RUN: %gold -m elf_x86_64 -plugin %llvmshlibdir/LLVMgold%shlibext %t.o -o %t.out -wrap=bar -plugin-opt=save-temps
+ ; RUN: llvm-readobj -t %t.out | FileCheck %s
+ ; RUN: cat %t.out.resolution.txt | FileCheck -check-prefix=RESOLS %s
+ 
+ ; ThinLTO
+ ; RUN: opt -module-summary %s -o %t.o
+-; RUN: %gold -plugin %llvmshlibdir/LLVMgold%shlibext %t.o -o %t.out -wrap=bar -plugin-opt=save-temps
++; RUN: %gold -m elf_x86_64 -plugin %llvmshlibdir/LLVMgold%shlibext %t.o -o %t.out -wrap=bar -plugin-opt=save-temps
+ ; RUN: llvm-readobj -t %t.out | FileCheck %s
+ ; RUN: cat %t.out.resolution.txt | FileCheck -check-prefix=RESOLS %s
+ 
+diff --git a/test/tools/gold/X86/v1.16/wrap-2.ll b/test/tools/gold/X86/v1.16/wrap-2.ll
+index 7c1d95d..f36456c 100644
+--- a/test/tools/gold/X86/v1.16/wrap-2.ll
++++ b/test/tools/gold/X86/v1.16/wrap-2.ll
+@@ -7,14 +7,14 @@
+ ; LTO defsym handling, gold will need a fix (not the gold plugin).
+ ; RUN-TODO: llvm-as %s -o %t.o
+ ; RUN-TODO: llvm-as %S/Inputs/wrap-bar.ll -o %t1.o
+-; RUN-TODO: %gold -plugin %llvmshlibdir/LLVMgold%shlibext %t.o %t1.o -shared -o %t.so -wrap=bar
++; RUN-TODO: %gold -m elf_x86_64 -plugin %llvmshlibdir/LLVMgold%shlibext %t.o %t1.o -shared -o %t.so -wrap=bar
+ ; RUN-TODO: llvm-objdump -d %t.so | FileCheck %s
+ ; RUN-TODO: llvm-readobj -t %t.so | FileCheck -check-prefix=BIND %s
+ 
+ ; ThinLTO
+ ; RUN: opt -module-summary %s -o %t.o
+ ; RUN: opt -module-summary %S/Inputs/wrap-bar.ll -o %t1.o
+-; RUN: %gold -plugin %llvmshlibdir/LLVMgold%shlibext %t.o %t1.o -shared -o %t.so -wrap=bar
++; RUN: %gold -m elf_x86_64 -plugin %llvmshlibdir/LLVMgold%shlibext %t.o %t1.o -shared -o %t.so -wrap=bar
+ ; RUN: llvm-objdump -d %t.so | FileCheck %s -check-prefix=THIN
+ ; RUN: llvm-readobj -t %t.so | FileCheck -check-prefix=BIND %s
+ 
+-- 
+1.8.3.1
+
