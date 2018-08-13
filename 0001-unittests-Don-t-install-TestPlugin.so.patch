@@ -1,0 +1,62 @@
+From cf1fb43186fd4d97ee2de0b222d44ecc500f82c7 Mon Sep 17 00:00:00 2001
+From: Tom Stellard <tstellar@redhat.com>
+Date: Mon, 13 Aug 2018 12:22:28 -0700
+Subject: [PATCH] unittests: Don't install TestPlugin.so
+
+add_llvm_loadable_module adds an install target by default, but this
+module is only used for a unit test, so we don't need to instal it.
+
+This patch adds a NO_INSTALL option to add_llvm_loadable_module that
+can be used to disable installation of modules.
+---
+ cmake/modules/AddLLVM.cmake     | 13 ++++++++-----
+ unittests/Passes/CMakeLists.txt |  2 +-
+ 2 files changed, 9 insertions(+), 6 deletions(-)
+
+diff --git a/cmake/modules/AddLLVM.cmake b/cmake/modules/AddLLVM.cmake
+index 24ef5e4..1637ba6 100644
+--- a/cmake/modules/AddLLVM.cmake
++++ b/cmake/modules/AddLLVM.cmake
+@@ -671,7 +671,8 @@ macro(add_llvm_library name)
+ endmacro(add_llvm_library name)
+ 
+ macro(add_llvm_loadable_module name)
+-  llvm_add_library(${name} MODULE ${ARGN})
++  cmake_parse_arguments(ARG "NO_INSTALL" "" "" ${ARGN})
++  llvm_add_library(${name} MODULE ${ARG_UNPARSED_ARGUMENTS})
+   if(NOT TARGET ${name})
+     # Add empty "phony" target
+     add_custom_target(${name})
+@@ -693,10 +694,12 @@ macro(add_llvm_loadable_module name)
+           set_property(GLOBAL PROPERTY LLVM_HAS_EXPORTS True)
+         endif()
+ 
+-        install(TARGETS ${name}
+-                ${export_to_llvmexports}
+-                LIBRARY DESTINATION ${dlldir}
+-                ARCHIVE DESTINATION lib${LLVM_LIBDIR_SUFFIX})
++        if (NOT ARG_NO_INSTALL)
++          install(TARGETS ${name}
++                  ${export_to_llvmexports}
++                  LIBRARY DESTINATION ${dlldir}
++                  ARCHIVE DESTINATION lib${LLVM_LIBDIR_SUFFIX})
++        endif()
+       endif()
+       set_property(GLOBAL APPEND PROPERTY LLVM_EXPORTS ${name})
+     endif()
+diff --git a/unittests/Passes/CMakeLists.txt b/unittests/Passes/CMakeLists.txt
+index d90df20..99390e6 100644
+--- a/unittests/Passes/CMakeLists.txt
++++ b/unittests/Passes/CMakeLists.txt
+@@ -14,7 +14,7 @@ add_llvm_unittest(PluginsTests
+ export_executable_symbols(PluginsTests)
+ 
+ set(LLVM_LINK_COMPONENTS)
+-add_llvm_loadable_module(TestPlugin
++add_llvm_loadable_module(TestPlugin NO_INSTALL
+   TestPlugin.cpp
+   )
+ 
+-- 
+1.8.3.1
+

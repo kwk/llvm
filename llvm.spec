@@ -49,7 +49,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.2.rc%{rc_ver}%{?dist}
+Release:	0.3.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -61,6 +61,7 @@ Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 
 Patch10:	0001-Don-t-run-BV-DAG-Combine-before-legalization-if-it-a.patch
 Patch11:	0001-gold-Fix-Tests-cases-on-i686.patch
+Patch12:	0001-unittests-Don-t-install-TestPlugin.so.patch
 
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
@@ -202,9 +203,6 @@ ninja -v
 cd _build
 ninja -v install
 
-# FIXME: Patch upstream to not install this
-rm %{buildroot}%{install_libdir}/TestPlugin.so
-
 %if !0%{?compat_build}
 # fix multi-lib
 mv -v %{buildroot}%{_bindir}/llvm-config{,-%{__isa_bits}}
@@ -335,6 +333,9 @@ fi
 %endif
 
 %changelog
+* Mon Aug 13 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.3.rc1
+- Drop references to TestPlugin.so from cmake files
+
 * Fri Aug 10 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.2.rc1
 - Fixes for lit tests
 
