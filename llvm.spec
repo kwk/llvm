@@ -26,7 +26,7 @@
 %global llvm_targets AArch64;AMDGPU;BPF
 %endif
 %ifarch %{arm}
-%global llvm_targets ARM;BPF
+%global llvm_targets ARM;AMDGPU;BPF
 %endif
 
 %if 0%{?compat_build}
@@ -49,7 +49,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.3.rc%{rc_ver}%{?dist}
+Release:	0.4.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -333,6 +333,9 @@ fi
 %endif
 
 %changelog
+* Mon Aug 20 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.4.rc1
+- Re-enable AMDGPU target on ARM rhbz#1618922
+
 * Mon Aug 13 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.3.rc1
 - Drop references to TestPlugin.so from cmake files
 
