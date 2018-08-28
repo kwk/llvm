@@ -1,0 +1,77 @@
+From 39184e407cd937f2f20d3f61eec205925bae7b13 Mon Sep 17 00:00:00 2001
+From: Yonghong Song <yhs@fb.com>
+Date: Wed, 22 Aug 2018 21:21:03 +0000
+Subject: [PATCH] bpf: fix an assertion in BPFAsmBackend applyFixup()
+
+Fix bug https://bugs.llvm.org/show_bug.cgi?id=38643
+
+In BPFAsmBackend applyFixup(), there is an assertion for FixedValue to be 0.
+This may not be true, esp. for optimiation level 0.
+For example, in the above bug, for the following two
+static variables:
+  @bpf_map_lookup_elem = internal global i8* (i8*, i8*)*
+      inttoptr (i64 1 to i8* (i8*, i8*)*), align 8
+  @bpf_map_update_elem = internal global i32 (i8*, i8*, i8*, i64)*
+      inttoptr (i64 2 to i32 (i8*, i8*, i8*, i64)*), align 8
+
+The static variable @bpf_map_update_elem will have a symbol
+offset of 8 and a FK_SecRel_8 with FixupValue 8 will cause
+the assertion if llvm is built with -DLLVM_ENABLE_ASSERTIONS=ON.
+
+The above relocations will not exist if the program is compiled
+with optimization level -O1 and above as the compiler optimizes
+those static variables away. In the below error message, -O2
+is suggested as this is the common practice.
+
+Note that FixedValue = 0 in applyFixup() does exist and is valid,
+e.g., for the global variable my_map in the above bug. The bpf
+loader will process them properly for map_id's before loading
+the program into the kernel.
+
+The static variables, which are not optimized away by compiler,
+may have FK_SecRel_8 relocation with non-zero FixedValue.
+
+The patch removed the offending assertion and will issue
+a hard error as below if the FixedValue in applyFixup()
+is not 0.
+  $ llc -march=bpf -filetype=obj fixup.ll
+  LLVM ERROR: Unsupported relocation: try to compile with -O2 or above,
+      or check your static variable usage
+
+Signed-off-by: Yonghong Song <yhs@fb.com>
+
+git-svn-id: https://llvm.org/svn/llvm-project/llvm/trunk@340455 91177308-0d34-0410-b5e6-96231b3b80d8
+---
+ lib/Target/BPF/MCTargetDesc/BPFAsmBackend.cpp | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/lib/Target/BPF/MCTargetDesc/BPFAsmBackend.cpp b/lib/Target/BPF/MCTargetDesc/BPFAsmBackend.cpp
+index 6c255e9..1822d86 100644
+--- a/lib/Target/BPF/MCTargetDesc/BPFAsmBackend.cpp
++++ b/lib/Target/BPF/MCTargetDesc/BPFAsmBackend.cpp
+@@ -10,6 +10,8 @@
+ #include "MCTargetDesc/BPFMCTargetDesc.h"
+ #include "llvm/ADT/StringRef.h"
+ #include "llvm/MC/MCAsmBackend.h"
++#include "llvm/MC/MCAssembler.h"
++#include "llvm/MC/MCContext.h"
+ #include "llvm/MC/MCFixup.h"
+ #include "llvm/MC/MCObjectWriter.h"
+ #include "llvm/Support/EndianStream.h"
+@@ -71,7 +73,12 @@ void BPFAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
+                                bool IsResolved,
+                                const MCSubtargetInfo *STI) const {
+   if (Fixup.getKind() == FK_SecRel_4 || Fixup.getKind() == FK_SecRel_8) {
+-    assert(Value == 0);
++    if (Value) {
++      MCContext &Ctx = Asm.getContext();
++      Ctx.reportError(Fixup.getLoc(),
++                      "Unsupported relocation: try to compile with -O2 or above, "
++                      "or check your static variable usage");
++    }
+   } else if (Fixup.getKind() == FK_Data_4) {
+     support::endian::write<uint32_t>(&Data[Fixup.getOffset()], Value, Endian);
+   } else if (Fixup.getKind() == FK_Data_8) {
+-- 
+1.8.3.1
+

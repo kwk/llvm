@@ -12,7 +12,7 @@
 %global maj_ver 7
 %global min_ver 0
 %global patch_ver 0
-%global rc_ver 1
+%global rc_ver 2
 
 %ifarch s390x
 %global llvm_targets SystemZ;BPF
@@ -50,7 +50,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.6.rc%{rc_ver}%{?dist}
+Release:	0.7.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -61,9 +61,9 @@ Source1:	run-lit-tests
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 
-Patch10:	0001-Don-t-run-BV-DAG-Combine-before-legalization-if-it-a.patch
-Patch11:	0001-gold-Fix-Tests-cases-on-i686.patch
 Patch12:	0001-unittests-Don-t-install-TestPlugin.so.patch
+# rhbz#1618958
+Patch13:	0001-bpf-fix-an-assertion-in-BPFAsmBackend-applyFixup.patch
 
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
@@ -410,6 +410,9 @@ fi
 %endif
 
 %changelog
+* Tue Aug 28 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.7.rc2
+- 7.0.0-rc2 Release
+
 * Tue Aug 28 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.6.rc1
 - Guard valgrind usage with valgrind_arches macro
 
