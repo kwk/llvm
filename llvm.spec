@@ -50,7 +50,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.5.rc%{rc_ver}%{?dist}
+Release:	0.6.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -80,8 +80,10 @@ BuildRequires:	multilib-rpm-config
 BuildRequires:  binutils-devel
 %endif
 BuildRequires:  libstdc++-static
+%ifarch %{valgrind_arches}
 # Enable extra functionality when run the LLVM JIT under valgrind.
 BuildRequires:  valgrind-devel
+%endif
 # LLVM's LineEditor library will use libedit if it is available.
 BuildRequires:  libedit-devel
 
@@ -408,6 +410,9 @@ fi
 %endif
 
 %changelog
+* Tue Aug 28 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.6.rc1
+- Guard valgrind usage with valgrind_arches macro
+
 * Thu Aug 23 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.5.rc1
 - Package lit tests and googletest sources.
 
