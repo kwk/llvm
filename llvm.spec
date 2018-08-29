@@ -1,5 +1,6 @@
 # Components enabled if supported by target architecture:
-%ifarch %ix86 x86_64
+%define gold_arches %ix86 x86_64 %arm aarch64 %{power64} s390x
+%ifarch %gold_arches
   %bcond_without gold
 %else
   %bcond_with gold
@@ -30,7 +31,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	6%{?dist}
+Release:	7%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -314,6 +315,9 @@ fi
 %endif
 
 %changelog
+* Wed Aug 29 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-7
+- Build the gold plugin on all supported architectures
+
 * Mon Aug 06 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-6
 - Backport some fixes needed by mesa and rust
 
