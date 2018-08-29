@@ -1,4 +1,4 @@
-%global debug_package %{nil}
+#global debug_package %%{nil}
 # Components enabled if supported by target architecture:
 %ifarch %ix86 x86_64
   %bcond_without gold
@@ -50,7 +50,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.7.rc%{rc_ver}%{?dist}
+Release:	0.8.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -410,6 +410,9 @@ fi
 %endif
 
 %changelog
+* Wed Aug 29 2018 Kevin Fenzi <kevin@scrye.com> - 7.0.0-0.8.rc2
+- Re-enable debuginfo to avoid 25x size increase.
+
 * Tue Aug 28 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.7.rc2
 - 7.0.0-rc2 Release
 
