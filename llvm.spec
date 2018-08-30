@@ -1,4 +1,3 @@
-#global debug_package %%{nil}
 # Components enabled if supported by target architecture:
 %define gold_arches %{ix86} x86_64 %{arm} aarch64 %{power64} s390x
 %ifarch %{gold_arches}
