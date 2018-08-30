@@ -50,7 +50,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.9.rc%{rc_ver}%{?dist}
+Release:	0.10.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -64,6 +64,11 @@ Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 Patch12:	0001-unittests-Don-t-install-TestPlugin.so.patch
 # rhbz#1618958
 Patch13:	0001-bpf-fix-an-assertion-in-BPFAsmBackend-applyFixup.patch
+# If python2 is available on the system, llvm will try to use it.  This patch
+# removes the preferences for python2, so we can make sure we always use
+# python3.
+Patch14:	0001-CMake-Don-t-prefer-python2.7.patch
+Patch15:	0001-lit-Use-sys.executable-for-executing-builtin-command.patch
 
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
@@ -72,8 +77,6 @@ BuildRequires:	ninja-build
 BuildRequires:	zlib-devel
 BuildRequires:  libffi-devel
 BuildRequires:	ncurses-devel
-# We need /usr/bin/python for some lit tests to work.
-BuildRequires:	python-unversioned-command
 BuildRequires:	python3-sphinx
 BuildRequires:	multilib-rpm-config
 %if %{with gold}
@@ -86,6 +89,8 @@ BuildRequires:  valgrind-devel
 %endif
 # LLVM's LineEditor library will use libedit if it is available.
 BuildRequires:  libedit-devel
+# We need python3-devel for pathfix.py.
+BuildRequires:	python3-devel
 
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
@@ -149,6 +154,8 @@ LLVM's modified googletest sources.
 
 %prep
 %autosetup -n llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src -p1
+
+pathfix.py -i %{__python3} -pn test/BugPoint/compile-custom.ll.py
 
 %build
 mkdir -p _build
@@ -410,6 +417,9 @@ fi
 %endif
 
 %changelog
+* Thu Aug 30 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.10.rc2
+- Drop all uses of python2 from lit tests
+
 * Thu Aug 30 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.9.rc2
 - Build the gold plugin on all supported architectures
 

@@ -1,0 +1,27 @@
+From 3235c2488c3cd661b4421cc3e4739baefdc80783 Mon Sep 17 00:00:00 2001
+From: Tom Stellard <tstellar@redhat.com>
+Date: Thu, 30 Aug 2018 12:53:56 -0700
+Subject: [PATCH] lit: Use sys.executable for executing builtin commands
+
+The python executable may not exist on all systems so use sys.executable
+instead.
+---
+ utils/lit/lit/TestRunner.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/utils/lit/lit/TestRunner.py b/utils/lit/lit/TestRunner.py
+index e304381..4d903b4 100644
+--- a/utils/lit/lit/TestRunner.py
++++ b/utils/lit/lit/TestRunner.py
+@@ -879,7 +879,7 @@ def _executeShCmd(cmd, shenv, results, timeoutHelper):
+         # Expand all glob expressions
+         args = expand_glob_expressions(args, cmd_shenv.cwd)
+         if is_builtin_cmd:
+-            args.insert(0, "python")
++            args.insert(0, sys.executable)
+             args[1] = os.path.join(builtin_commands_dir ,args[1] + ".py")
+ 
+         # On Windows, do our own command line quoting for better compatibility
+-- 
+1.8.3.1
+
