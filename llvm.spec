@@ -50,7 +50,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.10.rc%{rc_ver}%{?dist}
+Release:	0.11.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -155,7 +155,9 @@ LLVM's modified googletest sources.
 %prep
 %autosetup -n llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src -p1
 
-pathfix.py -i %{__python3} -pn test/BugPoint/compile-custom.ll.py
+pathfix.py -i %{__python3} -pn \
+	test/BugPoint/compile-custom.ll.py \
+	tools/opt-viewer/*.py
 
 %build
 mkdir -p _build
@@ -417,6 +419,9 @@ fi
 %endif
 
 %changelog
+* Fri Sep 07 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.11.rc2
+- Use python3 shebang for opt-viewewr scripts
+
 * Thu Aug 30 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.10.rc2
 - Drop all uses of python2 from lit tests
 
