@@ -12,7 +12,7 @@
 %global maj_ver 7
 %global min_ver 0
 %global patch_ver 0
-%global rc_ver 2
+%global rc_ver 3
 
 %ifarch s390x
 %global llvm_targets SystemZ;BPF
@@ -50,7 +50,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.11.rc%{rc_ver}%{?dist}
+Release:	0.12.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -62,13 +62,10 @@ Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 
 Patch12:	0001-unittests-Don-t-install-TestPlugin.so.patch
-# rhbz#1618958
-Patch13:	0001-bpf-fix-an-assertion-in-BPFAsmBackend-applyFixup.patch
 # If python2 is available on the system, llvm will try to use it.  This patch
 # removes the preferences for python2, so we can make sure we always use
 # python3.
 Patch14:	0001-CMake-Don-t-prefer-python2.7.patch
-Patch15:	0001-lit-Use-sys.executable-for-executing-builtin-command.patch
 
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
@@ -419,6 +416,9 @@ fi
 %endif
 
 %changelog
+* Mon Sep 10 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.12.rc3
+- 7.0.0-rc3 Release
+
 * Fri Sep 07 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.11.rc2
 - Use python3 shebang for opt-viewewr scripts
 
