@@ -21,7 +21,8 @@
 %global llvm_targets PowerPC;AMDGPU;BPF
 %endif
 %ifarch %ix86 x86_64
-%global llvm_targets X86;AMDGPU;NVPTX;BPF
+# ARM/AARCH64 enabled due to rhbz#1627500
+%global llvm_targets X86;AMDGPU;NVPTX;BPF;ARM;AARCH64
 %endif
 %ifarch aarch64
 %global llvm_targets AArch64;AMDGPU;BPF
@@ -50,7 +51,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.12.rc%{rc_ver}%{?dist}
+Release:	0.13.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -416,6 +417,9 @@ fi
 %endif
 
 %changelog
+* Tue Sep 11 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.13.rc3
+- Re-enable arm and aarch64 targets on x86_64
+
 * Mon Sep 10 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.12.rc3
 - 7.0.0-rc3 Release
 
