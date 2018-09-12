@@ -22,7 +22,7 @@
 %endif
 %ifarch %ix86 x86_64
 # ARM/AARCH64 enabled due to rhbz#1627500
-%global llvm_targets X86;AMDGPU;NVPTX;BPF;ARM;AARCH64
+%global llvm_targets X86;AMDGPU;NVPTX;BPF;ARM;AArch64
 %endif
 %ifarch aarch64
 %global llvm_targets AArch64;AMDGPU;BPF
