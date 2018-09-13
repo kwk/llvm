@@ -51,7 +51,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.13.rc%{rc_ver}%{?dist}
+Release:	0.14.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -89,6 +89,7 @@ BuildRequires:  valgrind-devel
 BuildRequires:  libedit-devel
 # We need python3-devel for pathfix.py.
 BuildRequires:	python3-devel
+BuildRequires:	chrpath
 
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
@@ -276,6 +277,13 @@ cp -R _build/unittests %{buildroot}%{llvm_bindir}/
 # FIXME: Can't figure out how to make the find command succeed.
 find %{buildroot}%{llvm_bindir} -ignore_readdir_race -iname 'cmake*' -exec rm -Rf '{}' ';' || true
 
+# Remove rpath
+chrpath --delete %{buildroot}%{_bindir}/*
+chrpath --delete %{buildroot}%{_libdir}/*.so*
+
+for f in `find %{buildroot}%{llvm_bindir} -executable -type f`; do
+	chrpath --delete $f
+done
 %else
 
 # Add version suffix to binaries
@@ -417,6 +425,9 @@ fi
 %endif
 
 %changelog
+* Wed Sep 12 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.14.rc3
+- Remove rpath from executables and libraries
+
 * Tue Sep 11 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.13.rc3
 - Re-enable arm and aarch64 targets on x86_64
 
