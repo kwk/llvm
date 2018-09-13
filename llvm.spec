@@ -51,7 +51,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.14.rc%{rc_ver}%{?dist}
+Release:	0.15.rc%{rc_ver}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -67,6 +67,7 @@ Patch12:	0001-unittests-Don-t-install-TestPlugin.so.patch
 # removes the preferences for python2, so we can make sure we always use
 # python3.
 Patch14:	0001-CMake-Don-t-prefer-python2.7.patch
+Patch15:	0001-Don-t-set-rpath-when-installing.patch
 
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
@@ -89,7 +90,6 @@ BuildRequires:  valgrind-devel
 BuildRequires:  libedit-devel
 # We need python3-devel for pathfix.py.
 BuildRequires:	python3-devel
-BuildRequires:	chrpath
 
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
@@ -277,13 +277,6 @@ cp -R _build/unittests %{buildroot}%{llvm_bindir}/
 # FIXME: Can't figure out how to make the find command succeed.
 find %{buildroot}%{llvm_bindir} -ignore_readdir_race -iname 'cmake*' -exec rm -Rf '{}' ';' || true
 
-# Remove rpath
-chrpath --delete %{buildroot}%{_bindir}/*
-chrpath --delete %{buildroot}%{_libdir}/*.so*
-
-for f in `find %{buildroot}%{llvm_bindir} -executable -type f`; do
-	chrpath --delete $f
-done
 %else
 
 # Add version suffix to binaries
@@ -425,6 +418,9 @@ fi
 %endif
 
 %changelog
+* Thu Sep 13 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.15.rc3
+- Disable rpath on install LLVM and related sub-projects
+
 * Wed Sep 12 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.14.rc3
 - Remove rpath from executables and libraries
 
