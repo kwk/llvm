@@ -12,7 +12,6 @@
 %global maj_ver 7
 %global min_ver 0
 %global patch_ver 0
-%global rc_ver 3
 
 %ifarch s390x
 %global llvm_targets SystemZ;BPF
@@ -51,7 +50,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.15.rc%{rc_ver}%{?dist}
+Release:	1%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -418,6 +417,9 @@ fi
 %endif
 
 %changelog
+* Fri Sep 21 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-1
+- 7.0.0 Release
+
 * Thu Sep 13 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-0.15.rc3
 - Disable rpath on install LLVM and related sub-projects
 
