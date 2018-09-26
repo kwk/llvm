@@ -50,7 +50,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -136,11 +136,17 @@ Static libraries for the LLVM compiler infrastructure.
 
 %package test
 Summary:	LLVM regression tests.
+Requires:	%{name}%{?_isa} = %{version}-%{release}
+Requires:	python3-lit
+# The regression tests need gold.
+Requires:	binutils
+# This is for llvm-config
+Requires:	%{name}-devel%{?_isa} = %{version}-%{release}
+# Bugpoint tests require gcc
+Requires:	gcc
 
 %description test
 LLVM regression tests.
-Requires:	%{name}%{?_isa} = %{version}-%{release}
-Requires:	python3-lit
 
 %package googletest
 Summary: LLVM's modified googletest sources.
@@ -156,6 +162,8 @@ LLVM's modified googletest sources.
 pathfix.py -i %{__python3} -pn \
 	test/BugPoint/compile-custom.ll.py \
 	tools/opt-viewer/*.py
+
+sed -i 's~@TOOLS_DIR@~%{llvm_bindir}~' %{SOURCE1}
 
 %build
 mkdir -p _build
@@ -417,6 +425,15 @@ fi
 %endif
 
 %changelog
+* Thu Sep 27 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-2
+- Fixes for llvm-test package:
+- Add some missing Requires
+- Add --threads option to run-lit-tests script
+- Set PATH so lit can find tools like count, not, etc.
+- Don't hardcode tools directory to /usr/lib64/llvm
+- Fix typo in yaml-bench define
+- Only print information about failing tests
+
 * Fri Sep 21 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-1
 - 7.0.0 Release
 

@@ -6,6 +6,6 @@
     required_packages:
       - llvm-test
     tests:
-      - rhbz#482491:
+      - regression-tests:
           dir: ./
-          run: /usr/libexec/tests/llvm/run-lit-tests
+          run: /usr/libexec/tests/llvm/run-lit-tests --threads 1
