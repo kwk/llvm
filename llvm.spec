@@ -31,7 +31,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	7%{?dist}
+Release:	8%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -47,6 +47,7 @@ Patch9:		0001-Export-LLVM_DYLIB_COMPONENTS-in-LLVMConfig.cmake.patch
 Patch10:	0001-Don-t-run-BV-DAG-Combine-before-legalization-if-it-a.patch
 Patch11:	0001-PowerPC-Do-not-round-values-prior-to-converting-to-i.patch
 Patch12:	0001-SystemZ-TableGen-Fix-shift-count-handling.patch
+Patch13:	0001-Merging-r340455.patch
 
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
@@ -315,6 +316,9 @@ fi
 %endif
 
 %changelog
+* Wed Sep 26 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-8
+- BPF unknown opcode fix: rhbz#1618958
+
 * Wed Aug 29 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-7
 - Build the gold plugin on all supported architectures
 
