@@ -50,7 +50,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -144,6 +144,7 @@ Requires:	binutils
 Requires:	%{name}-devel%{?_isa} = %{version}-%{release}
 # Bugpoint tests require gcc
 Requires:	gcc
+Requires:	findutils
 
 %description test
 LLVM regression tests.
@@ -265,6 +266,10 @@ cp -R utils/unittest %{install_srcdir}/utils/
 
 # Generate lit config files.
 cat _build/test/lit.site.cfg.py >> %{lit_cfg}
+
+# Unit tests write output to this directory, so it can't be in /usr.
+sed -i 's~\(config.llvm_obj_root = \)"[^"]\+"~\1"."~' %{lit_cfg}
+
 cat _build/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
 sed -i -e s~`pwd`/_build~%{_prefix}~g -e s~`pwd`~.~g %{lit_cfg} %{lit_cfg} %{lit_unit_cfg}
 
@@ -425,6 +430,9 @@ fi
 %endif
 
 %changelog
+* Sat Oct 27 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-3
+- Fix running unittests as not-root user
+
 * Thu Sep 27 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-2
 - Fixes for llvm-test package:
 - Add some missing Requires
