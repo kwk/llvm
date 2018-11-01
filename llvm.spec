@@ -49,7 +49,7 @@ Obsoletes: pure <= 0.55
 
 Name:           llvm
 Version:        %{version_base}.2
-Release:        8%{?dist}
+Release:        9%{?dist}
 Summary:        The Low Level Virtual Machine
 
 Group:          Development/Languages
@@ -678,6 +678,9 @@ exit 0
 %endif
 
 %changelog
+* Thu Nov 01 2018 Richard W.M. Jones <rjones@redhat.com> - 3.4.2-9
+- Rebuild for OCaml 4.05 in RHEL 7.5.
+
 * Mon Dec 07 2015 Dan Horák <dan[at]danny.cz> 3.4.2-8
 - Add ppc64le fix from Fedora llvm 3.4
 
