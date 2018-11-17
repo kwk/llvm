@@ -50,7 +50,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -253,6 +253,15 @@ for f in %{test_binaries}; do
 install -m 0755 ./bin/$f %{buildroot}%{llvm_bindir}
 done
 
+# Install libraries needed for unittests
+%if 0%{?__isa_bits} == 64
+%global build_libdir lib64
+%else
+%global build_libdir lib
+%endif
+
+install %{build_libdir}/libLLVMTestingSupport.a %{buildroot}%{_libdir}
+
 %global install_srcdir %{buildroot}%{_datadir}/llvm/src
 %global lit_cfg test/lit.site.cfg.py
 %global lit_unit_cfg test/Unit/lit.site.cfg.py
@@ -408,6 +417,7 @@ fi
 %files static
 %if !0%{?compat_build}
 %{_libdir}/*.a
+%exclude %{_libdir}/libLLVMTestingSupport.a
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 %else
 %{_libdir}/%{name}/lib/*.a
@@ -426,10 +436,14 @@ fi
 
 %files googletest
 %{_datadir}/llvm/src/utils
+%{_libdir}/libLLVMTestingSupport.a
 
 %endif
 
 %changelog
+* Sat Nov 17 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-4
+- Install testing libraries for unittests
+
 * Sat Oct 27 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-3
 - Fix running unittests as not-root user
 
