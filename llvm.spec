@@ -12,7 +12,8 @@
 %global build_llvm_bindir %{buildroot}%{llvm_bindir}
 %global maj_ver 7
 %global min_ver 0
-%global patch_ver 0
+%global patch_ver 1
+#%%global rc_ver 3
 
 %ifarch s390x
 %global llvm_targets SystemZ;BPF
@@ -54,7 +55,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	5%{?dist}
+Release:	1%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -81,6 +82,7 @@ BuildRequires:	libffi-devel
 BuildRequires:	ncurses-devel
 BuildRequires:	python3-sphinx
 BuildRequires:	multilib-rpm-config
+BuildRequires:	chrpath
 %if %{with gold}
 BuildRequires:	binutils-devel
 %endif
@@ -110,7 +112,7 @@ Requires:	%{name}%{?_isa} = %{version}-%{release}
 # libedit-devel is available.
 Requires:	libedit-devel
 Requires(post):	%{_sbindir}/alternatives
-Requires(postun): %{_sbindir}/alternatives
+Requires(postun):	%{_sbindir}/alternatives
 
 %description devel
 This package contains library and header files needed to develop new native
@@ -139,7 +141,7 @@ Static libraries for the LLVM compiler infrastructure.
 %if !0%{?compat_build}
 
 %package test
-Summary:	LLVM regression tests.
+Summary:	LLVM regression tests
 Requires:	%{name}%{?_isa} = %{version}-%{release}
 Requires:	python3-lit
 # The regression tests need gold.
@@ -154,7 +156,7 @@ Requires:	findutils
 LLVM regression tests.
 
 %package googletest
-Summary: LLVM's modified googletest sources.
+Summary: LLVM's modified googletest sources
 
 %description googletest
 LLVM's modified googletest sources.
@@ -445,6 +447,9 @@ fi
 %endif
 
 %changelog
+* Mon Dec 17 2018 sguelton@redhat.com - 7.0.1-1
+- 7.0.1 release
+
 * Tue Dec 04 2018 sguelton@redhat.com - 7.0.0-5
 - Ensure rpmlint passes on specfile
 
