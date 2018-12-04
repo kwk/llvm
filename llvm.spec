@@ -9,6 +9,7 @@
 %global compat_build 0
 
 %global llvm_bindir %{_libdir}/%{name}
+%global build_llvm_bindir %{buildroot}%{llvm_bindir}
 %global maj_ver 7
 %global min_ver 0
 %global patch_ver 0
@@ -48,9 +49,12 @@
 %global pkg_libdir %{install_libdir}
 %endif
 
+%global build_install_prefix %{buildroot}%{install_prefix}
+%global build_pkgdocdir %{buildroot}%{_pkgdocdir}
+
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	4%{?dist}
+Release:	5%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -68,25 +72,25 @@ Patch12:	0001-unittests-Don-t-install-TestPlugin.so.patch
 Patch14:	0001-CMake-Don-t-prefer-python2.7.patch
 Patch15:	0001-Don-t-set-rpath-when-installing.patch
 
-BuildRequires:  gcc
-BuildRequires:  gcc-c++
+BuildRequires:	gcc
+BuildRequires:	gcc-c++
 BuildRequires:	cmake
 BuildRequires:	ninja-build
 BuildRequires:	zlib-devel
-BuildRequires:  libffi-devel
+BuildRequires:	libffi-devel
 BuildRequires:	ncurses-devel
 BuildRequires:	python3-sphinx
 BuildRequires:	multilib-rpm-config
 %if %{with gold}
-BuildRequires:  binutils-devel
+BuildRequires:	binutils-devel
 %endif
-BuildRequires:  libstdc++-static
+BuildRequires:	libstdc++-static
 %ifarch %{valgrind_arches}
 # Enable extra functionality when run the LLVM JIT under valgrind.
-BuildRequires:  valgrind-devel
+BuildRequires:	valgrind-devel
 %endif
 # LLVM's LineEditor library will use libedit if it is available.
-BuildRequires:  libedit-devel
+BuildRequires:	libedit-devel
 # We need python3-devel for pathfix.py.
 BuildRequires:	python3-devel
 
@@ -105,7 +109,7 @@ Requires:	%{name}%{?_isa} = %{version}-%{release}
 # app that requires the libLLVMLineEditor, so we need to make sure
 # libedit-devel is available.
 Requires:	libedit-devel
-Requires(post): %{_sbindir}/alternatives
+Requires(post):	%{_sbindir}/alternatives
 Requires(postun): %{_sbindir}/alternatives
 
 %description devel
@@ -216,7 +220,7 @@ cd _build
 	-DLLVM_INSTALL_UTILS:BOOL=OFF \
 %else
 	-DLLVM_INSTALL_UTILS:BOOL=ON \
-	-DLLVM_UTILS_INSTALL_DIR:PATH=%{buildroot}%{llvm_bindir} \
+	-DLLVM_UTILS_INSTALL_DIR:PATH=%{build_llvm_bindir} \
 %endif
 	\
 	-DLLVM_INCLUDE_DOCS:BOOL=ON \
@@ -231,8 +235,8 @@ cd _build
 	-DLLVM_INSTALL_TOOLCHAIN_ONLY:BOOL=OFF \
 	\
 	-DSPHINX_WARNINGS_AS_ERRORS=OFF \
-	-DCMAKE_INSTALL_PREFIX=%{buildroot}%{install_prefix} \
-	-DLLVM_INSTALL_SPHINX_HTML_DIR=%{buildroot}%{_pkgdocdir}/html \
+	-DCMAKE_INSTALL_PREFIX=%{build_install_prefix} \
+	-DLLVM_INSTALL_SPHINX_HTML_DIR=%{build_pkgdocdir}/html \
 	-DSPHINX_EXECUTABLE=%{_bindir}/sphinx-build-3
 
 ninja -v
@@ -250,7 +254,7 @@ mv -v %{buildroot}%{_bindir}/llvm-config{,-%{__isa_bits}}
 # Install binaries needed for lit tests
 %global test_binaries lli-child-target llvm-isel-fuzzer llvm-opt-fuzzer yaml-bench
 for f in %{test_binaries}; do
-install -m 0755 ./bin/$f %{buildroot}%{llvm_bindir}
+install -m 0755 ./bin/$f %{build_llvm_bindir}
 done
 
 # Install libraries needed for unittests
@@ -294,9 +298,9 @@ install -d %{buildroot}%{_datadir}/llvm/
 tar -czf %{install_srcdir}/test.tar.gz test/
 
 # Install the unit test binaries
-cp -R _build/unittests %{buildroot}%{llvm_bindir}/
+cp -R _build/unittests %{build_llvm_bindir}/
 # FIXME: Can't figure out how to make the find command succeed.
-find %{buildroot}%{llvm_bindir} -ignore_readdir_race -iname 'cmake*' -exec rm -Rf '{}' ';' || true
+find %{build_llvm_bindir} -ignore_readdir_race -iname 'cmake*' -exec rm -Rf '{}' ';' || true
 
 %else
 
@@ -324,13 +328,13 @@ EOF
 
 # Add version suffix to man pages and move them to mandir.
 mkdir -p %{buildroot}/%{_mandir}/man1
-for f in `ls %{buildroot}%{install_prefix}/share/man/man1/*`; do
+for f in `ls %{build_install_prefix}/share/man/man1/*`; do
   filename=`basename $f | cut -f 1 -d '.'`
   mv $f %{buildroot}%{_mandir}/man1/$filename%{exec_suffix}.1
 done
 
 # Remove opt-viewer, since this is just a compatibility package.
-rm -Rf %{buildroot}%{install_prefix}/share/opt-viewer
+rm -Rf %{build_install_prefix}/share/opt-viewer
 
 %endif
 
@@ -441,6 +445,9 @@ fi
 %endif
 
 %changelog
+* Tue Dec 04 2018 sguelton@redhat.com - 7.0.0-5
+- Ensure rpmlint passes on specfile
+
 * Sat Nov 17 2018 Tom Stellard <tstellar@redhat.com> - 7.0.0-4
 - Install testing libraries for unittests
 
