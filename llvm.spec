@@ -31,7 +31,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	8%{?dist}
+Release:	9%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -316,6 +316,9 @@ fi
 %endif
 
 %changelog
+* Mon Jan 14 2019 sguelton@redhat.com - 6.0.1-9
+- Rebuilt require to rebuild clang version.
+
 * Wed Sep 26 2018 Tom Stellard <tstellar@redhat.com> - 6.0.1-8
 - BPF unknown opcode fix: rhbz#1618958
 
