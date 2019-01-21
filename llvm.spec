@@ -55,7 +55,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	1%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	2%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -72,6 +72,9 @@ Patch12:	0001-unittests-Don-t-install-TestPlugin.so.patch
 # python3.
 Patch14:	0001-CMake-Don-t-prefer-python2.7.patch
 Patch15:	0001-Don-t-set-rpath-when-installing.patch
+
+Patch16:	0001-Ensure-that-variant-part-discriminator-is-read-by-Me.patch
+Patch17:	0002-test-Fix-Assembler-debug-info.ll.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -447,6 +450,9 @@ fi
 %endif
 
 %changelog
+* Mon Jan 21 2019 Josh Stone <jistone@redhat.com> - 7.0.1-2
+- Fix discriminators in metadata, rhbz#1668033
+
 * Mon Dec 17 2018 sguelton@redhat.com - 7.0.1-1
 - 7.0.1 release
 
