@@ -347,8 +347,7 @@ rm -Rf %{build_install_prefix}/share/opt-viewer
 cd _build
 ninja check-all || :
 
-%post libs -p /sbin/ldconfig
-%postun libs -p /sbin/ldconfig
+%ldconfig_scriptlets libs
 
 %if !0%{?compat_build}
 
