@@ -1,0 +1,44 @@
+diff -ru llvm-8.0.0rc1.src.orig/cmake/modules/CMakeLists.txt llvm-8.0.0rc1.src/cmake/modules/CMakeLists.txt
+--- llvm-8.0.0rc1.src.orig/cmake/modules/CMakeLists.txt	2019-02-12 11:32:02.370238762 +0000
++++ llvm-8.0.0rc1.src/cmake/modules/CMakeLists.txt	2019-02-13 08:40:39.263265812 +0000
+@@ -94,7 +94,7 @@
+ set(LLVM_CONFIG_LIBRARY_DIRS "\${LLVM_INSTALL_PREFIX}/lib\${LLVM_LIBDIR_SUFFIX}")
+ set(LLVM_CONFIG_CMAKE_DIR "\${LLVM_INSTALL_PREFIX}/${LLVM_INSTALL_PACKAGE_DIR}")
+ set(LLVM_CONFIG_BINARY_DIR "\${LLVM_INSTALL_PREFIX}")
+-set(LLVM_CONFIG_TOOLS_BINARY_DIR "\${LLVM_INSTALL_PREFIX}/bin")
++set(LLVM_CONFIG_TOOLS_BINARY_DIR "\${LLVM_INSTALL_PREFIX}/${LLVM_TOOLS_INSTALL_DIR}")
+ set(LLVM_CONFIG_EXPORTS_FILE "\${LLVM_CMAKE_DIR}/LLVMExports.cmake")
+ set(LLVM_CONFIG_EXPORTS "${LLVM_EXPORTS}")
+ configure_file(
+diff -ru llvm-8.0.0rc1.src.orig/tools/llvm-config/llvm-config.cpp llvm-8.0.0rc1.src/tools/llvm-config/llvm-config.cpp
+--- llvm-8.0.0rc1.src.orig/tools/llvm-config/llvm-config.cpp	2019-02-12 11:32:00.617221180 +0000
++++ llvm-8.0.0rc1.src/tools/llvm-config/llvm-config.cpp	2019-02-12 11:34:27.817599362 +0000
+@@ -269,7 +269,6 @@
+   // tree.
+   bool IsInDevelopmentTree;
+   enum { CMakeStyle, CMakeBuildModeStyle } DevelopmentTreeLayout;
+-  llvm::SmallString<256> CurrentPath(GetExecutablePath(argv[0]));
+   std::string CurrentExecPrefix;
+   std::string ActiveObjRoot;
+ 
+@@ -280,11 +279,15 @@
+     build_mode = CMAKE_CFG_INTDIR;
+ #endif
+ 
+-  // Create an absolute path, and pop up one directory (we expect to be inside a
+-  // bin dir).
+-  sys::fs::make_absolute(CurrentPath);
+-  CurrentExecPrefix =
+-      sys::path::parent_path(sys::path::parent_path(CurrentPath)).str();
++  // Create an absolute path, and pop up as much directory as in LLVM_TOOLS_INSTALL_DIR
++  {
++    llvm::SmallString<256> CurrentPath(GetExecutablePath(argv[0]));
++    sys::fs::make_absolute(CurrentPath);
++    for (auto iter = sys::path::begin(LLVM_TOOLS_INSTALL_DIR), end = sys::path::end(LLVM_TOOLS_INSTALL_DIR); iter != end; ++iter) {
++      CurrentPath = sys::path::parent_path(CurrentPath).str();
++    }
++    CurrentExecPrefix = sys::path::parent_path(CurrentPath).str();
++  }
+ 
+   // Check to see if we are inside a development tree by comparing to possible
+   // locations (prefix style or CMake style).

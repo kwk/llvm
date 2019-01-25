@@ -1,17 +1,17 @@
-From e67ace2ecb42c24e124f1738dc67b22055a22500 Mon Sep 17 00:00:00 2001
-From: Tom Stellard <tstellar@redhat.com>
-Date: Thu, 13 Sep 2018 10:10:08 -0700
-Subject: [PATCH] Don't set rpath when installing
+From 05e48edb91ddcf0d85ba2de2672b252e3ec3cbc3 Mon Sep 17 00:00:00 2001
+From: serge-sans-paille <sguelton@redhat.com>
+Date: Fri, 25 Jan 2019 17:39:04 +0000
+Subject: [PATCH 2/2] [PATCH] Don't set rpath when installing
 
 ---
  cmake/modules/AddLLVM.cmake | 1 +
  1 file changed, 1 insertion(+)
 
 diff --git a/cmake/modules/AddLLVM.cmake b/cmake/modules/AddLLVM.cmake
-index ce2057f..de309b5 100644
+index c408377cd2e..56ab12c2365 100644
 --- a/cmake/modules/AddLLVM.cmake
 +++ b/cmake/modules/AddLLVM.cmake
-@@ -1621,6 +1621,7 @@ function(llvm_codesign name)
+@@ -1662,6 +1662,7 @@ function(llvm_codesign name)
  endfunction()
  
  function(llvm_setup_rpath name)
@@ -20,5 +20,5 @@ index ce2057f..de309b5 100644
      return()
    endif()
 -- 
-1.8.3.1
+2.19.2
 

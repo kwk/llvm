@@ -9,11 +9,12 @@
 %global compat_build 0
 
 %global llvm_bindir %{_libdir}/%{name}
+%global llvm_bin %{_lib}/%{name}
 %global build_llvm_bindir %{buildroot}%{llvm_bindir}
-%global maj_ver 7
+%global maj_ver 8
 %global min_ver 0
-%global patch_ver 1
-#%%global rc_ver 3
+%global patch_ver 0
+%global rc_ver 1
 
 %ifarch s390x
 %global llvm_targets SystemZ;BPF
@@ -55,7 +56,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	2%{?rc_ver:.rc%{rc_ver}}%{?dist}.1
+Release:	1%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -63,18 +64,9 @@ URL:		http://llvm.org
 Source0:	http://%{?rc_ver:pre}releases.llvm.org/%{version}/%{?rc_ver:rc%{rc_ver}}/llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src.tar.xz
 Source1:	run-lit-tests
 
-Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
-Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
-
-Patch12:	0001-unittests-Don-t-install-TestPlugin.so.patch
-# If python2 is available on the system, llvm will try to use it.  This patch
-# removes the preferences for python2, so we can make sure we always use
-# python3.
-Patch14:	0001-CMake-Don-t-prefer-python2.7.patch
-Patch15:	0001-Don-t-set-rpath-when-installing.patch
-
-Patch16:	0001-Ensure-that-variant-part-discriminator-is-read-by-Me.patch
-Patch17:	0002-test-Fix-Assembler-debug-info.ll.patch
+Patch5:		0001-PATCH-llvm-config.patch
+Patch7:		0001-PATCH-Filter-out-cxxflags-not-supported-by-clang.patch
+Patch15:	0002-PATCH-Don-t-set-rpath-when-installing.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -84,6 +76,7 @@ BuildRequires:	zlib-devel
 BuildRequires:	libffi-devel
 BuildRequires:	ncurses-devel
 BuildRequires:	python3-sphinx
+BuildRequires:	python3-recommonmark
 BuildRequires:	multilib-rpm-config
 BuildRequires:	chrpath
 %if %{with gold}
@@ -226,6 +219,7 @@ cd _build
 %else
 	-DLLVM_INSTALL_UTILS:BOOL=ON \
 	-DLLVM_UTILS_INSTALL_DIR:PATH=%{build_llvm_bindir} \
+	-DLLVM_TOOLS_INSTALL_DIR:PATH=%{llvm_bin}\
 %endif
 	\
 	-DLLVM_INCLUDE_DOCS:BOOL=ON \
@@ -247,26 +241,29 @@ cd _build
 ninja -v
 
 %install
-cd _build
-ninja -v install
+ninja -C _build -v install
+
 
 %if !0%{?compat_build}
-# fix multi-lib
-mv -v %{buildroot}%{_bindir}/llvm-config{,-%{__isa_bits}}
+mkdir -p %{buildroot}/%{_bindir}
+ln -s %{llvm_bindir}/llvm-config %{buildroot}/%{_bindir}/llvm-config-%{__isa_bits}
+
+# Install binaries needed for lit tests
+%global test_binaries FileCheck count lli-child-target llvm-PerfectShuffle llvm-isel-fuzzer llvm-opt-fuzzer not yaml-bench
+
+for f in %{test_binaries}
+do
+    install -m 0755 ./_build/bin/$f %{build_llvm_bindir}
+done
+
 
 %multilib_fix_c_header --file %{_includedir}/llvm/Config/llvm-config.h
 
-# Install binaries needed for lit tests
-%global test_binaries lli-child-target llvm-isel-fuzzer llvm-opt-fuzzer yaml-bench
-for f in %{test_binaries}; do
-install -m 0755 ./bin/$f %{build_llvm_bindir}
-done
-
 # Install libraries needed for unittests
 %if 0%{?__isa_bits} == 64
-%global build_libdir lib64
+%global build_libdir _build/lib64
 %else
-%global build_libdir lib
+%global build_libdir _build/lib
 %endif
 
 install %{build_libdir}/libLLVMTestingSupport.a %{buildroot}%{_libdir}
@@ -274,8 +271,6 @@ install %{build_libdir}/libLLVMTestingSupport.a %{buildroot}%{_libdir}
 %global install_srcdir %{buildroot}%{_datadir}/llvm/src
 %global lit_cfg test/lit.site.cfg.py
 %global lit_unit_cfg test/Unit/lit.site.cfg.py
-
-cd ..
 
 # Install gtest sources so clang can use them for gtest
 install -d %{install_srcdir}
@@ -311,9 +306,10 @@ find %{build_llvm_bindir} -ignore_readdir_race -iname 'cmake*' -exec rm -Rf '{}'
 
 # Add version suffix to binaries
 mkdir -p %{buildroot}/%{_bindir}
-for f in `ls %{buildroot}/%{install_bindir}/*`; do
+for f in %{build_llvm_bindir}/*
+do
   filename=`basename $f`
-  ln -s %{install_bindir}/$filename %{buildroot}/%{_bindir}/$filename%{exec_suffix}
+  ln -s %{_bindir}/$filename %{buildroot}/%{_bindir}/$filename%{exec_suffix}
 done
 
 # Move header files
@@ -322,7 +318,6 @@ ln -s ../../../%{install_includedir}/llvm %{buildroot}/%{pkg_includedir}/llvm
 ln -s ../../../%{install_includedir}/llvm-c %{buildroot}/%{pkg_includedir}/llvm-c
 
 # Fix multi-lib
-mv %{buildroot}%{_bindir}/llvm-config{%{exec_suffix},%{exec_suffix}-%{__isa_bits}}
 %multilib_fix_c_header --file %{install_includedir}/llvm/Config/llvm-config.h
 
 # Create ld.so.conf.d entry
@@ -343,6 +338,7 @@ rm -Rf %{build_install_prefix}/share/opt-viewer
 
 %endif
 
+
 %check
 cd _build
 ninja check-all || :
@@ -352,11 +348,11 @@ ninja check-all || :
 %if !0%{?compat_build}
 
 %post devel
-%{_sbindir}/update-alternatives --install %{_bindir}/llvm-config llvm-config %{_bindir}/llvm-config-%{__isa_bits} %{__isa_bits}
+%{_sbindir}/update-alternatives --install %{_bindir}/llvm-config llvm-config %{llvm_bindir}/llvm-config %{__isa_bits}
 
 %postun devel
 if [ $1 -eq 0 ]; then
-  %{_sbindir}/update-alternatives --remove llvm-config %{_bindir}/llvm-config-%{__isa_bits}
+  %{_sbindir}/update-alternatives --remove llvm-config %{llvm_bindir}/llvm-config
 fi
 
 %endif
@@ -379,16 +375,12 @@ fi
 %files libs
 %{pkg_libdir}/libLLVM-%{maj_ver}.so
 %if !0%{?compat_build}
-%{_libdir}/BugpointPasses.so
-%{_libdir}/LLVMHello.so
 %if %{with gold}
 %{_libdir}/LLVMgold.so
 %endif
 %{_libdir}/libLLVM-%{maj_ver}.%{min_ver}*.so
 %{_libdir}/libLTO.so*
 %else
-%{pkg_libdir}/BugpointPasses.so
-%{pkg_libdir}/LLVMHello.so
 %if %{with gold}
 %{_libdir}/%{name}/lib/LLVMgold.so
 %endif
@@ -396,6 +388,7 @@ fi
 %{pkg_libdir}/libLTO.so*
 %exclude %{pkg_libdir}/libLTO.so
 %endif
+%{pkg_libdir}/libOptRemarks.so*
 
 %files devel
 %if !0%{?compat_build}
@@ -449,6 +442,10 @@ fi
 %endif
 
 %changelog
+
+* Sat Feb 9 2019 sguelton@redhat.com - 8.0.0-1.rc1
+- 8.0.0 Release candidate 1
+
 * Fri Feb 01 2019 Fedora Release Engineering <releng@fedoraproject.org> - 7.0.1-2.1
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
 
