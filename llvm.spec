@@ -55,7 +55,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	2%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	2%{?rc_ver:.rc%{rc_ver}}%{?dist}.1
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -449,6 +449,9 @@ fi
 %endif
 
 %changelog
+* Fri Feb 01 2019 Fedora Release Engineering <releng@fedoraproject.org> - 7.0.1-2.1
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
+
 * Mon Jan 21 2019 Josh Stone <jistone@redhat.com> - 7.0.1-2
 - Fix discriminators in metadata, rhbz#1668033
 
