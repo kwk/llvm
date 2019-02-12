@@ -5,7 +5,11 @@
       - classic
     required_packages:
       - llvm-test
+      # Required for clang-llvm-config test
+      - clang
+      - llvm
     tests:
       - regression-tests:
           dir: ./
           run: /usr/libexec/tests/llvm/run-lit-tests --threads 1
+      - clang-llvm-config

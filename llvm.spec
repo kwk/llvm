@@ -55,7 +55,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	2%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	3%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -64,7 +64,6 @@ Source0:	http://%{?rc_ver:pre}releases.llvm.org/%{version}/%{?rc_ver:rc%{rc_ver}
 Source1:	run-lit-tests
 
 Patch3:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
-Patch7:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 
 Patch12:	0001-unittests-Don-t-install-TestPlugin.so.patch
 # If python2 is available on the system, llvm will try to use it.  This patch
@@ -75,6 +74,8 @@ Patch15:	0001-Don-t-set-rpath-when-installing.patch
 
 Patch16:	0001-Ensure-that-variant-part-discriminator-is-read-by-Me.patch
 Patch17:	0002-test-Fix-Assembler-debug-info.ll.patch
+# rhbz#1672012
+Patch18:	0001-Don-t-add-unnecessary-compiler-flags-to-llvm-config-.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -450,6 +451,9 @@ fi
 %endif
 
 %changelog
+* Tue Feb 12 2019 Tom Stellard <tstellar@redhat.com> - 7.0.1-3
+- Remove unnecessary flags from llvm-config
+
 * Mon Jan 21 2019 Josh Stone <jistone@redhat.com> - 7.0.1-2
 - Fix discriminators in metadata, rhbz#1668033
 
