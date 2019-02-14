@@ -172,7 +172,7 @@ sed -i 's~@TOOLS_DIR@~%{llvm_bindir}~' %{SOURCE1}
 mkdir -p _build
 cd _build
 
-%ifarch s390 %{arm} %ix86
+%ifarch s390 s390x %{arm} %ix86
 # Decrease debuginfo verbosity to reduce memory consumption during final library linking
 %global optflags %(echo %{optflags} | sed 's/-g /-g1 /')
 %endif
