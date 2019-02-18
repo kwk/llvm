@@ -14,7 +14,7 @@
 %global maj_ver 8
 %global min_ver 0
 %global patch_ver 0
-%global rc_ver 1
+%global rc_ver 2
 
 %ifarch s390x
 %global llvm_targets SystemZ;BPF
