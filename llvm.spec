@@ -56,7 +56,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	1%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	0.2%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -444,7 +444,10 @@ fi
 
 %changelog
 
-* Sat Feb 9 2019 sguelton@redhat.com - 8.0.0-1.rc1
+* Fri Feb 22 2019 sguelton@redhat.com - 8.0.0-0.2.rc2
+- 8.0.0 Release candidate 2
+
+* Sat Feb 9 2019 sguelton@redhat.com - 8.0.0-0.1.rc1
 - 8.0.0 Release candidate 1
 
 * Fri Feb 01 2019 Fedora Release Engineering <releng@fedoraproject.org> - 7.0.1-2.1
