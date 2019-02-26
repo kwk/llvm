@@ -368,7 +368,6 @@ fi
 %{_datadir}/opt-viewer
 %exclude %{llvm_bindir}/unittests
 %else
-%config(noreplace) %{_sysconfdir}/ld.so.conf.d/%{name}-%{_arch}.conf
 %exclude %{pkg_bindir}/llvm-config
 %{pkg_bindir}
 %endif
@@ -382,6 +381,7 @@ fi
 %{_libdir}/libLLVM-%{maj_ver}.%{min_ver}*.so
 %{_libdir}/libLTO.so*
 %else
+%config(noreplace) %{_sysconfdir}/ld.so.conf.d/%{name}-%{_arch}.conf
 %if %{with gold}
 %{_libdir}/%{name}/lib/LLVMgold.so
 %endif
