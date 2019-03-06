@@ -8,9 +8,9 @@
 
 %global compat_build 0
 
-%global llvm_bindir %{_libdir}/%{name}
-%global llvm_bin %{_lib}/%{name}
-%global build_llvm_bindir %{buildroot}%{llvm_bindir}
+%global build_llvm_bindir %{buildroot}%{_bindir}
+%global llvm_libdir %{_libdir}/%{name}
+%global build_llvm_libdir %{buildroot}%{llvm_libdir}
 %global maj_ver 8
 %global min_ver 0
 %global patch_ver 0
@@ -56,7 +56,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.3%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	0.4%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -66,7 +66,6 @@ Source1:	run-lit-tests
 
 Patch5:		0001-PATCH-llvm-config.patch
 Patch7:		0001-PATCH-Filter-out-cxxflags-not-supported-by-clang.patch
-Patch15:	0002-PATCH-Don-t-set-rpath-when-installing.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -78,7 +77,6 @@ BuildRequires:	ncurses-devel
 BuildRequires:	python3-sphinx
 BuildRequires:	python3-recommonmark
 BuildRequires:	multilib-rpm-config
-BuildRequires:	chrpath
 %if %{with gold}
 BuildRequires:	binutils-devel
 %endif
@@ -166,7 +164,7 @@ pathfix.py -i %{__python3} -pn \
 	test/BugPoint/compile-custom.ll.py \
 	tools/opt-viewer/*.py
 
-sed -i 's~@TOOLS_DIR@~%{llvm_bindir}~' %{SOURCE1}
+sed -i 's~@TOOLS_DIR@~%{_bindir}~' %{SOURCE1}
 
 %build
 mkdir -p _build
@@ -182,6 +180,8 @@ cd _build
 	-DBUILD_SHARED_LIBS:BOOL=OFF \
 	-DLLVM_PARALLEL_LINK_JOBS=1 \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	-DCMAKE_SKIP_RPATH:BOOL=ON \
+	-DCMAKE_INSTALL_RPATH:BOOL=OFF \
 %ifarch s390 %{arm} %ix86
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
@@ -220,7 +220,7 @@ cd _build
 %else
 	-DLLVM_INSTALL_UTILS:BOOL=ON \
 	-DLLVM_UTILS_INSTALL_DIR:PATH=%{build_llvm_bindir} \
-	-DLLVM_TOOLS_INSTALL_DIR:PATH=%{llvm_bin}\
+	-DLLVM_TOOLS_INSTALL_DIR:PATH=bin \
 %endif
 	\
 	-DLLVM_INCLUDE_DOCS:BOOL=ON \
@@ -247,7 +247,11 @@ ninja -C _build -v install
 
 %if !0%{?compat_build}
 mkdir -p %{buildroot}/%{_bindir}
-ln -s %{llvm_bindir}/llvm-config %{buildroot}/%{_bindir}/llvm-config-%{__isa_bits}
+mv %{buildroot}/%{_bindir}/llvm-config %{buildroot}/%{_bindir}/llvm-config-%{__isa_bits}
+
+# Fix some man pages
+ln -s llvm-config.1 %{buildroot}%{_mandir}/man1/llvm-config-%{__isa_bits}.1
+mv %{buildroot}%{_mandir}/man1/tblgen.1 %{buildroot}%{_mandir}/man1/llvm-tblgen.1
 
 # Install binaries needed for lit tests
 %global test_binaries FileCheck count lli-child-target llvm-PerfectShuffle llvm-isel-fuzzer llvm-opt-fuzzer not yaml-bench
@@ -288,7 +292,7 @@ cat _build/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
 sed -i -e s~`pwd`/_build~%{_prefix}~g -e s~`pwd`~.~g %{lit_cfg} %{lit_cfg} %{lit_unit_cfg}
 
 # obj_root needs to be set to the directory containing the unit test binaries.
-sed -i 's~\(config.llvm_obj_root = \)"[^"]\+"~\1"%{llvm_bindir}"~' %{lit_unit_cfg}
+sed -i 's~\(config.llvm_obj_root = \)"[^"]\+"~\1"%{_bindir}"~' %{lit_unit_cfg}
 
 install -d %{buildroot}%{_libexecdir}/tests/llvm
 install -m 0755 %{SOURCE1} %{buildroot}%{_libexecdir}/tests/llvm
@@ -299,18 +303,17 @@ install -d %{buildroot}%{_datadir}/llvm/
 tar -czf %{install_srcdir}/test.tar.gz test/
 
 # Install the unit test binaries
-cp -R _build/unittests %{build_llvm_bindir}/
-# FIXME: Can't figure out how to make the find command succeed.
-find %{build_llvm_bindir} -ignore_readdir_race -iname 'cmake*' -exec rm -Rf '{}' ';' || true
+mkdir -p %{build_llvm_libdir}
+cp -R _build/unittests %{build_llvm_libdir}/
+rm -rf `find %{build_llvm_libdir} -iname 'cmake*'`
 
 %else
 
 # Add version suffix to binaries
 mkdir -p %{buildroot}/%{_bindir}
-for f in %{build_llvm_bindir}/*
+for binary in %{build_llvm_bindir}/*
 do
-  filename=`basename $f`
-  ln -s %{_bindir}/$filename %{buildroot}/%{_bindir}/$filename%{exec_suffix}
+  mv ${binary} ${binary}%{exec_suffix}
 done
 
 # Move header files
@@ -341,32 +344,37 @@ rm -Rf %{build_install_prefix}/share/opt-viewer
 
 
 %check
-cd _build
-ninja check-all || :
+ninja check-all -C _build || :
 
 %ldconfig_scriptlets libs
 
 %if !0%{?compat_build}
 
 %post devel
-%{_sbindir}/update-alternatives --install %{_bindir}/llvm-config llvm-config %{llvm_bindir}/llvm-config %{__isa_bits}
+%{_sbindir}/update-alternatives --install %{_bindir}/llvm-config llvm-config %{_bindir}/llvm-config-%{__isa_bits} %{__isa_bits}
 
 %postun devel
 if [ $1 -eq 0 ]; then
-  %{_sbindir}/update-alternatives --remove llvm-config %{llvm_bindir}/llvm-config
+  %{_sbindir}/update-alternatives --remove llvm-config %{_bindir}/llvm-config
 fi
 
 %endif
 
 %files
-%{_bindir}/*
-%{_mandir}/man1/*.1.*
 %if !0%{?compat_build}
-%{llvm_bindir}
 %exclude %{_bindir}/llvm-config-%{__isa_bits}
-%exclude %{_mandir}/man1/llvm-config.1.*
+%exclude %{_bindir}/not
+%exclude %{_bindir}/count
+%exclude %{_bindir}/yaml-bench
+%exclude %{_bindir}/lli-child-target
+%exclude %{_bindir}/llvm-isel-fuzzer
+%exclude %{_bindir}/llvm-opt-fuzzer
+%{_bindir}/*
+
+%exclude %{_mandir}/man1/llvm-config*
+%{_mandir}/man1/*
+
 %{_datadir}/opt-viewer
-%exclude %{llvm_bindir}/unittests
 %else
 %exclude %{pkg_bindir}/llvm-config
 %{pkg_bindir}
@@ -394,7 +402,7 @@ fi
 %files devel
 %if !0%{?compat_build}
 %{_bindir}/llvm-config-%{__isa_bits}
-%{_mandir}/man1/llvm-config.1.*
+%{_mandir}/man1/llvm-config*
 %{_includedir}/llvm
 %{_includedir}/llvm-c
 %{_libdir}/libLLVM.so
@@ -429,12 +437,14 @@ fi
 
 %files test
 %{_libexecdir}/tests/llvm/
-%{llvm_bindir}/unittests/
+%{llvm_libdir}/unittests/
 %{_datadir}/llvm/src/test.tar.gz
-%{llvm_bindir}/yaml-bench
-%{llvm_bindir}/lli-child-target
-%{llvm_bindir}/llvm-isel-fuzzer
-%{llvm_bindir}/llvm-opt-fuzzer
+%{_bindir}/not
+%{_bindir}/count
+%{_bindir}/yaml-bench
+%{_bindir}/lli-child-target
+%{_bindir}/llvm-isel-fuzzer
+%{_bindir}/llvm-opt-fuzzer
 
 %files googletest
 %{_datadir}/llvm/src/utils
@@ -443,6 +453,9 @@ fi
 %endif
 
 %changelog
+
+* Mon Mar 4 2019 sguelton@redhat.com - 8.0.0-0.4.rc3
+- Move some binaries to -test package, cleanup specfile
 
 * Mon Mar 4 2019 sguelton@redhat.com - 8.0.0-0.3.rc3
 - 8.0.0 Release candidate 3
