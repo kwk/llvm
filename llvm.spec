@@ -14,7 +14,7 @@
 %global maj_ver 8
 %global min_ver 0
 %global patch_ver 0
-%global rc_ver 3
+%global rc_ver 4
 
 %ifarch s390x
 %global llvm_targets SystemZ;BPF
@@ -56,7 +56,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.4%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	0.5%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -453,6 +453,8 @@ fi
 %endif
 
 %changelog
+* Tue Mar 12 2019 sguelton@redhat.com - 8.0.0-0.5.rc4
+- 8.0.0 Release candidate 4
 
 * Mon Mar 4 2019 sguelton@redhat.com - 8.0.0-0.4.rc3
 - Move some binaries to -test package, cleanup specfile
