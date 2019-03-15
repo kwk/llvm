@@ -16,22 +16,6 @@
 %global patch_ver 0
 %global rc_ver 4
 
-%ifarch s390x
-%global llvm_targets SystemZ;BPF
-%endif
-%ifarch ppc64 ppc64le
-%global llvm_targets PowerPC;AMDGPU;BPF
-%endif
-%ifarch %ix86 x86_64
-# ARM/AARCH64 enabled due to rhbz#1627500
-%global llvm_targets X86;AMDGPU;NVPTX;BPF;ARM;AArch64
-%endif
-%ifarch aarch64
-%global llvm_targets AArch64;AMDGPU;BPF
-%endif
-%ifarch %{arm}
-%global llvm_targets ARM;AMDGPU;BPF
-%endif
 
 %if 0%{?compat_build}
 %global pkg_name llvm%{maj_ver}.%{min_ver}
@@ -56,7 +40,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.5%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	0.6%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -194,7 +178,7 @@ cd _build
 %endif
 %endif
 	\
-	-DLLVM_TARGETS_TO_BUILD="%{llvm_targets}" \
+	-DLLVM_TARGETS_TO_BUILD=all \
 	-DLLVM_ENABLE_LIBCXX:BOOL=OFF \
 	-DLLVM_ENABLE_ZLIB:BOOL=ON \
 	-DLLVM_ENABLE_FFI:BOOL=ON \
@@ -453,6 +437,9 @@ fi
 %endif
 
 %changelog
+* Fri Mar 15 2019 sguelton@redhat.com - 8.0.0-0.6.rc4
+- Activate all backends (rhbz#1689031)
+
 * Tue Mar 12 2019 sguelton@redhat.com - 8.0.0-0.5.rc4
 - 8.0.0 Release candidate 4
 
