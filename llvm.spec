@@ -14,7 +14,7 @@
 %global maj_ver 8
 %global min_ver 0
 %global patch_ver 0
-%global rc_ver 4
+#%%global rc_ver 4
 
 
 %if 0%{?compat_build}
@@ -40,7 +40,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	0.6%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	1%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -437,6 +437,9 @@ fi
 %endif
 
 %changelog
+* Wed Mar 20 2019 sguelton@redhat.com - 8.0.0-1
+- 8.0.0 final
+
 * Fri Mar 15 2019 sguelton@redhat.com - 8.0.0-0.6.rc4
 - Activate all backends (rhbz#1689031)
 
