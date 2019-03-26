@@ -40,7 +40,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	2%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	3%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -338,7 +338,10 @@ rm -Rf %{build_install_prefix}/share/opt-viewer
 
 
 %check
-ninja check-all -C _build || :
+# We have disabled rpath, so we need to add the build's library directory
+# to LD_LIBRARY_PATH.
+LD_LIBRARY_PATH=`pwd`/_build/%{_lib}:$LD_LIBRARY_PATH \
+  ninja check-all -C _build || :
 
 %ldconfig_scriptlets libs
 
@@ -451,6 +454,9 @@ fi
 %endif
 
 %changelog
+* Tue Mar 26 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-3
+- Fix ninja check
+
 * Fri Mar 22 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-2
 - llvm-test fixes
 
