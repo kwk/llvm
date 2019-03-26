@@ -40,13 +40,14 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	1%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	2%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
 URL:		http://llvm.org
 Source0:	http://%{?rc_ver:pre}releases.llvm.org/%{version}/%{?rc_ver:rc%{rc_ver}}/llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src.tar.xz
 Source1:	run-lit-tests
+Source2:	lit.fedora.cfg.py
 
 Patch5:		0001-PATCH-llvm-config.patch
 Patch7:		0001-PATCH-Filter-out-cxxflags-not-supported-by-clang.patch
@@ -147,8 +148,6 @@ LLVM's modified googletest sources.
 pathfix.py -i %{__python3} -pn \
 	test/BugPoint/compile-custom.ll.py \
 	tools/opt-viewer/*.py
-
-sed -i 's~@TOOLS_DIR@~%{_bindir}~' %{SOURCE1}
 
 %build
 mkdir -p _build
@@ -258,25 +257,27 @@ done
 install %{build_libdir}/libLLVMTestingSupport.a %{buildroot}%{_libdir}
 
 %global install_srcdir %{buildroot}%{_datadir}/llvm/src
-%global lit_cfg test/lit.site.cfg.py
-%global lit_unit_cfg test/Unit/lit.site.cfg.py
+%global lit_cfg test/%{_arch}.site.cfg.py
+%global lit_unit_cfg test/Unit/%{_arch}.site.cfg.py
+%global lit_fedora_cfg %{_datadir}/llvm/lit.fedora.cfg.py
 
 # Install gtest sources so clang can use them for gtest
 install -d %{install_srcdir}
 install -d %{install_srcdir}/utils/
 cp -R utils/unittest %{install_srcdir}/utils/
 
-# Generate lit config files.
-cat _build/test/lit.site.cfg.py >> %{lit_cfg}
+# Generate lit config files.  Strip off the last line that initiates the
+# test run, so we can customize the configuration.
+head -n -1 _build/test/lit.site.cfg.py >> %{lit_cfg}
+head -n -1 _build/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
 
-# Unit tests write output to this directory, so it can't be in /usr.
-sed -i 's~\(config.llvm_obj_root = \)"[^"]\+"~\1"."~' %{lit_cfg}
+# Install custom fedora config file
+cp %{SOURCE2} %{buildroot}%{lit_fedora_cfg}
 
-cat _build/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
-sed -i -e s~`pwd`/_build~%{_prefix}~g -e s~`pwd`~.~g %{lit_cfg} %{lit_cfg} %{lit_unit_cfg}
-
-# obj_root needs to be set to the directory containing the unit test binaries.
-sed -i 's~\(config.llvm_obj_root = \)"[^"]\+"~\1"%{_bindir}"~' %{lit_unit_cfg}
+# Patch lit config files to load custom fedora config:
+for f in %{lit_cfg} %{lit_unit_cfg}; do
+  echo "lit_config.load_config(config, '%{lit_fedora_cfg}')" >> $f
+done
 
 install -d %{buildroot}%{_libexecdir}/tests/llvm
 install -m 0755 %{SOURCE1} %{buildroot}%{_libexecdir}/tests/llvm
@@ -290,6 +291,15 @@ tar -czf %{install_srcdir}/test.tar.gz test/
 mkdir -p %{build_llvm_libdir}
 cp -R _build/unittests %{build_llvm_libdir}/
 rm -rf `find %{build_llvm_libdir} -iname 'cmake*'`
+
+# Install libraries used for testing
+install -m 0755 %{build_libdir}/BugpointPasses.so %{buildroot}%{_libdir}
+install -m 0755 %{build_libdir}/LLVMHello.so %{buildroot}%{_libdir}
+
+# Install test inputs for PDB tests
+echo "%{_datadir}/llvm/src/unittests/DebugInfo/PDB" > %{build_llvm_libdir}/unittests/DebugInfo/PDB/llvm.srcdir.txt
+mkdir -p %{buildroot}%{_datadir}/llvm/src/unittests/DebugInfo/PDB/
+cp -R unittests/DebugInfo/PDB/Inputs %{buildroot}%{_datadir}/llvm/src/unittests/DebugInfo/PDB/
 
 %else
 
@@ -422,13 +432,17 @@ fi
 %files test
 %{_libexecdir}/tests/llvm/
 %{llvm_libdir}/unittests/
+%{_datadir}/llvm/src/unittests
 %{_datadir}/llvm/src/test.tar.gz
+%{_datadir}/llvm/lit.fedora.cfg.py
 %{_bindir}/not
 %{_bindir}/count
 %{_bindir}/yaml-bench
 %{_bindir}/lli-child-target
 %{_bindir}/llvm-isel-fuzzer
 %{_bindir}/llvm-opt-fuzzer
+%{_libdir}/BugpointPasses.so
+%{_libdir}/LLVMHello.so
 
 %files googletest
 %{_datadir}/llvm/src/utils
@@ -437,6 +451,9 @@ fi
 %endif
 
 %changelog
+* Fri Mar 22 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-2
+- llvm-test fixes
+
 * Wed Mar 20 2019 sguelton@redhat.com - 8.0.0-1
 - 8.0.0 final
 
