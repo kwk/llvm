@@ -2,7 +2,9 @@
 
 usage() {
     echo "usage: `basename $0` [OPTIONS]"
-    echo "  --threads NUM       The number of threads to use for running tests."
+    echo "  --threads NUM         The number of threads to use for running tests."
+    echo "  --multilib-arch ARCH  Use this option to test 32-bit libs/binaries on"
+    echo "                        64-bit hosts."
 }
 
 threads_arg=''
@@ -13,6 +15,10 @@ while [ $# -gt 0 ]; do
             shift
             threads_arg="--threads $1"
             ;;
+	--multilib-arch)
+            shift
+	    ARCH=$1
+	    ;;
         * )
             echo "unknown option: $1"
             echo ""
@@ -25,15 +31,28 @@ done
 
 set -xe
 
-TOOLS_DIR=@TOOLS_DIR@
+if [ -z "$ARCH" ]; then
+    ARCH=`rpm --eval '%_arch'`
+fi
+
+case $ARCH in
+    arm)
+	;&
+    i686)
+        LIB_DIR="/usr/lib/"
+        ;;
+    *)
+        LIB_DIR="/usr/lib64/"
+        ;;
+esac
+
 cd $(mktemp -d)
 ln -s /usr/include include
 tar -xzf /usr/share/llvm/src/test.tar.gz
-PATH=$PATH:$TOOLS_DIR lit -v -s $threads_arg test \
-	-DFileCheck=$TOOLS_DIR/FileCheck \
-	-Dcount=$TOOLS_DIR/count \
-	-Dnot=$TOOLS_DIR/not \
-	-Dlli-child-target=$TOOLS_DIR/lli-child-target \
-	-Dllvm-isel-fuzzer=$TOOLS_DIR/llvm-isel-fuzzer \
-	-Dllvm-opt-fuzzer=$TOOLS_DIR/llvm-opt-fuzzer \
-	-Dyaml-bench=$TOOLS_DIR/yaml-bench
+ln -s $ARCH.site.cfg.py test/lit.site.cfg.py
+ln -s $ARCH.site.cfg.py test/Unit/lit.site.cfg.py
+lit -v -s $threads_arg test \
+	-Dllvm_obj_root=`pwd` \
+	-Dllvm_test_root=`pwd`/test \
+	-Dllvm_unittest_bindir=$LIB_DIR/llvm \
+	-Dllvm_shlib_dir=$LIB_DIR
