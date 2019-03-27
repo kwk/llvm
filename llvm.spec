@@ -40,7 +40,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	3%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	4%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -51,6 +51,7 @@ Source2:	lit.fedora.cfg.py
 
 Patch5:		0001-PATCH-llvm-config.patch
 Patch7:		0001-PATCH-Filter-out-cxxflags-not-supported-by-clang.patch
+Patch8:		0001-Fix-the-buildbot-issue-introduced-by-r351421.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -340,8 +341,14 @@ rm -Rf %{build_install_prefix}/share/opt-viewer
 %check
 # We have disabled rpath, so we need to add the build's library directory
 # to LD_LIBRARY_PATH.
+# TODO: Fix test failures on arm
 LD_LIBRARY_PATH=`pwd`/_build/%{_lib}:$LD_LIBRARY_PATH \
-  ninja check-all -C _build || :
+  ninja check-all -C _build || \
+%ifarch %{arm}
+  :
+%else
+  false
+%endif
 
 %ldconfig_scriptlets libs
 
@@ -454,6 +461,9 @@ fi
 %endif
 
 %changelog
+* Wed Mar 27 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-4
+- Backport r351577 from trunk to fix ninja check failures
+
 * Tue Mar 26 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-3
 - Fix ninja check
 
