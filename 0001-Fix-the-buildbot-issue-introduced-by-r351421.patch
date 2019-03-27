@@ -1,0 +1,29 @@
+From eaa421d1f9c3748c550e2a91fcb134a3d2a8ebff Mon Sep 17 00:00:00 2001
+From: Sanjin Sijaric <ssijaric@codeaurora.org>
+Date: Fri, 18 Jan 2019 19:34:20 +0000
+Subject: [PATCH] Fix the buildbot issue introduced by r351421
+
+The EXPENSIVE_CHECK x86_64 Windows buildbot is failing due to this change. Fix
+the map access.
+
+llvm-svn: 351577
+---
+ lib/MC/MCWin64EH.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/MC/MCWin64EH.cpp b/lib/MC/MCWin64EH.cpp
+index 8bc1f08..3ef1514 100644
+--- a/lib/MC/MCWin64EH.cpp
++++ b/lib/MC/MCWin64EH.cpp
+@@ -522,7 +522,7 @@ static void ARM64EmitUnwindInfo(MCStreamer &streamer, WinEH::FrameInfo *info) {
+     if (MatchingEpilog) {
+       assert(EpilogInfo.find(MatchingEpilog) != EpilogInfo.end() &&
+              "Duplicate epilog not found");
+-      EpilogInfo[EpilogStart] = EpilogInfo[MatchingEpilog];
++      EpilogInfo[EpilogStart] = EpilogInfo.lookup(MatchingEpilog);
+       // Clear the unwind codes in the EpilogMap, so that they don't get output
+       // in the logic below.
+       EpilogInstrs.clear();
+-- 
+1.8.3.1
+
