@@ -40,7 +40,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	4%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	5%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -160,12 +160,16 @@ cd _build
 %endif
 
 # force off shared libs as cmake macros turns it on.
+#
+# -DCMAKE_INSTALL_RPATH=";" is a workaround for llvm manually setting the
+# rpath of libraries and binaries.  llvm will skip the manual setting
+# if CAMKE_INSTALL_RPATH is set to a value, but cmake interprets this value
+# as nothing, so it sets the rpath to "" when installing.
 %cmake .. -G Ninja \
 	-DBUILD_SHARED_LIBS:BOOL=OFF \
 	-DLLVM_PARALLEL_LINK_JOBS=1 \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	-DCMAKE_SKIP_RPATH:BOOL=ON \
-	-DCMAKE_INSTALL_RPATH:BOOL=OFF \
+	-DCMAKE_INSTALL_RPATH=";" \
 %ifarch s390 %{arm} %ix86
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
@@ -339,11 +343,8 @@ rm -Rf %{build_install_prefix}/share/opt-viewer
 
 
 %check
-# We have disabled rpath, so we need to add the build's library directory
-# to LD_LIBRARY_PATH.
 # TODO: Fix test failures on arm
-LD_LIBRARY_PATH=`pwd`/_build/%{_lib}:$LD_LIBRARY_PATH \
-  ninja check-all -C _build || \
+ninja check-all -C _build || \
 %ifarch %{arm}
   :
 %else
@@ -461,6 +462,9 @@ fi
 %endif
 
 %changelog
+* Sat Mar 30 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-5
+- Enable build rpath while keeping install rpath disabled
+
 * Wed Mar 27 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-4
 - Backport r351577 from trunk to fix ninja check failures
 
