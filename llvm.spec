@@ -40,7 +40,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	5%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	6%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -170,7 +170,7 @@ cd _build
 	-DLLVM_PARALLEL_LINK_JOBS=1 \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DCMAKE_INSTALL_RPATH=";" \
-%ifarch s390 %{arm} %ix86
+%ifarch s390 s390x %{arm} %ix86
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 %endif
@@ -462,6 +462,9 @@ fi
 %endif
 
 %changelog
+* Wed Apr 24 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-6
+- Make sure we aren't passing -g on s390x
+
 * Sat Mar 30 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-5
 - Enable build rpath while keeping install rpath disabled
 
