@@ -1,0 +1,12 @@
+--- !Policy
+product_versions:
+  - fedora-*
+decision_context: bodhi_update_push_testing
+rules:
+  - !PassingTestCaseRule {test_case_name: org.centos.prod.ci.pipeline.allpackages-build.package.test.functional.complete}
+--- !Policy
+product_versions:
+  - fedora-*
+decision_context: bodhi_update_push_stable
+rules:
+  - !PassingTestCaseRule {test_case_name: org.centos.prod.ci.pipeline.allpackages-build.package.test.functional.complete}
