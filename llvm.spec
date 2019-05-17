@@ -40,7 +40,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	6%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	7%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -114,6 +114,7 @@ Shared libraries for the LLVM compiler infrastructure.
 
 %package static
 Summary:	LLVM static libraries
+Conflicts:	%{name}-devel < 8
 
 %description static
 Static libraries for the LLVM compiler infrastructure.
@@ -462,6 +463,9 @@ fi
 %endif
 
 %changelog
+* Fri May 17 2019 sguelton@redhat.com - 8.0.0-7
+- Fix conflicts between llvm-static = 8 and llvm-dev < 8 around LLVMStaticExports.cmake
+
 * Wed Apr 24 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-6
 - Make sure we aren't passing -g on s390x
 
