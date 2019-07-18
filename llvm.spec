@@ -40,7 +40,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	7%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	8%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -78,6 +78,8 @@ BuildRequires:	python3-devel
 
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
+Provides:	llvm(major) = %{maj_ver}
+
 %description
 LLVM is a compiler infrastructure designed for compile-time, link-time,
 runtime, and idle-time optimization of programs from arbitrary programming
@@ -93,6 +95,8 @@ Requires:	%{name}%{?_isa} = %{version}-%{release}
 Requires:	libedit-devel
 Requires(post):	%{_sbindir}/alternatives
 Requires(postun):	%{_sbindir}/alternatives
+
+Provides:	llvm-devel(major) = %{maj_ver}
 
 %description devel
 This package contains library and header files needed to develop new native
@@ -132,6 +136,8 @@ Requires:	%{name}-devel%{?_isa} = %{version}-%{release}
 # Bugpoint tests require gcc
 Requires:	gcc
 Requires:	findutils
+
+Provides:	llvm-test(major) = %{maj_ver}
 
 %description test
 LLVM regression tests.
@@ -463,6 +469,9 @@ fi
 %endif
 
 %changelog
+* Wed Jul 17 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-8
+- Add provides for the major version of sub-packages
+
 * Fri May 17 2019 sguelton@redhat.com - 8.0.0-7
 - Fix conflicts between llvm-static = 8 and llvm-dev < 8 around LLVMStaticExports.cmake
 
