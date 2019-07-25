@@ -40,7 +40,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	8%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	8%{?rc_ver:.rc%{rc_ver}}%{?dist}.1
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -469,6 +469,9 @@ fi
 %endif
 
 %changelog
+* Thu Jul 25 2019 Fedora Release Engineering <releng@fedoraproject.org> - 8.0.0-8.1
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
+
 * Wed Jul 17 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-8
 - Add provides for the major version of sub-packages
 
