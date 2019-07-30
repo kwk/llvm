@@ -14,3 +14,8 @@
       - rust-sanity:
           dir: ./
           run: cargo new hello && cd hello && cargo run
+      # This test ensures that the spec file still builds correctly with
+      # %global compat_build 1
+      # FIXME: This fails, because the CI system has a hard-coded timeout of 4
+      # hours.
+      #- build-compat
