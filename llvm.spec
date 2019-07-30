@@ -6,7 +6,7 @@
   %bcond_with gold
 %endif
 
-%global compat_build 0
+%bcond_with compat_build
 
 %global build_llvm_bindir %{buildroot}%{_bindir}
 %global llvm_libdir %{_libdir}/%{name}
@@ -15,9 +15,10 @@
 %global min_ver 0
 %global patch_ver 0
 #%%global rc_ver 4
+%global baserelease 9
 
 
-%if 0%{?compat_build}
+%if %{with compat_build}
 %global pkg_name llvm%{maj_ver}.%{min_ver}
 %global exec_suffix -%{maj_ver}.%{min_ver}
 %global install_prefix %{_libdir}/%{name}
@@ -40,14 +41,16 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	8%{?rc_ver:.rc%{rc_ver}}%{?dist}.1
+Release:	%{baserelease}%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
 URL:		http://llvm.org
 Source0:	http://%{?rc_ver:pre}releases.llvm.org/%{version}/%{?rc_ver:rc%{rc_ver}}/llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src.tar.xz
+%if %{without compat_build}
 Source1:	run-lit-tests
 Source2:	lit.fedora.cfg.py
+%endif
 
 Patch5:		0001-PATCH-llvm-config.patch
 Patch7:		0001-PATCH-Filter-out-cxxflags-not-supported-by-clang.patch
@@ -123,7 +126,7 @@ Conflicts:	%{name}-devel < 8
 %description static
 Static libraries for the LLVM compiler infrastructure.
 
-%if !0%{?compat_build}
+%if %{without compat_build}
 
 %package test
 Summary:	LLVM regression tests
@@ -181,7 +184,7 @@ cd _build
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 %endif
-%if !0%{?compat_build}
+%if %{without compat_build}
 %if 0%{?__isa_bits} == 64
 	-DLLVM_LIBDIR_SUFFIX=64 \
 %else
@@ -210,7 +213,7 @@ cd _build
 	-DLLVM_BUILD_EXAMPLES:BOOL=OFF \
 	\
 	-DLLVM_INCLUDE_UTILS:BOOL=ON \
-%if 0%{?compat_build}
+%if %{with compat_build}
 	-DLLVM_INSTALL_UTILS:BOOL=OFF \
 %else
 	-DLLVM_INSTALL_UTILS:BOOL=ON \
@@ -240,7 +243,7 @@ ninja -v
 ninja -C _build -v install
 
 
-%if !0%{?compat_build}
+%if %{without compat_build}
 mkdir -p %{buildroot}/%{_bindir}
 mv %{buildroot}/%{_bindir}/llvm-config %{buildroot}/%{_bindir}/llvm-config-%{__isa_bits}
 
@@ -317,9 +320,9 @@ cp -R unittests/DebugInfo/PDB/Inputs %{buildroot}%{_datadir}/llvm/src/unittests/
 
 # Add version suffix to binaries
 mkdir -p %{buildroot}/%{_bindir}
-for binary in %{build_llvm_bindir}/*
-do
-  mv ${binary} ${binary}%{exec_suffix}
+for f in `ls %{buildroot}/%{install_bindir}/*`; do
+  filename=`basename $f`
+  ln -s %{install_bindir}/$filename %{buildroot}/%{_bindir}/$filename%{exec_suffix}
 done
 
 # Move header files
@@ -328,6 +331,7 @@ ln -s ../../../%{install_includedir}/llvm %{buildroot}/%{pkg_includedir}/llvm
 ln -s ../../../%{install_includedir}/llvm-c %{buildroot}/%{pkg_includedir}/llvm-c
 
 # Fix multi-lib
+mv %{buildroot}%{_bindir}/llvm-config{%{exec_suffix},%{exec_suffix}-%{__isa_bits}}
 %multilib_fix_c_header --file %{install_includedir}/llvm/Config/llvm-config.h
 
 # Create ld.so.conf.d entry
@@ -360,7 +364,7 @@ ninja check-all -C _build || \
 
 %ldconfig_scriptlets libs
 
-%if !0%{?compat_build}
+%if %{without compat_build}
 
 %post devel
 %{_sbindir}/update-alternatives --install %{_bindir}/llvm-config llvm-config %{_bindir}/llvm-config-%{__isa_bits} %{__isa_bits}
@@ -373,7 +377,11 @@ fi
 %endif
 
 %files
-%if !0%{?compat_build}
+%exclude %{_mandir}/man1/llvm-config*
+%{_mandir}/man1/*
+%{_bindir}/*
+
+%if %{without compat_build}
 %exclude %{_bindir}/llvm-config-%{__isa_bits}
 %exclude %{_bindir}/not
 %exclude %{_bindir}/count
@@ -381,11 +389,6 @@ fi
 %exclude %{_bindir}/lli-child-target
 %exclude %{_bindir}/llvm-isel-fuzzer
 %exclude %{_bindir}/llvm-opt-fuzzer
-%{_bindir}/*
-
-%exclude %{_mandir}/man1/llvm-config*
-%{_mandir}/man1/*
-
 %{_datadir}/opt-viewer
 %else
 %exclude %{pkg_bindir}/llvm-config
@@ -394,7 +397,7 @@ fi
 
 %files libs
 %{pkg_libdir}/libLLVM-%{maj_ver}.so
-%if !0%{?compat_build}
+%if %{without compat_build}
 %if %{with gold}
 %{_libdir}/LLVMgold.so
 %endif
@@ -412,7 +415,7 @@ fi
 %{pkg_libdir}/libOptRemarks.so*
 
 %files devel
-%if !0%{?compat_build}
+%if %{without compat_build}
 %{_bindir}/llvm-config-%{__isa_bits}
 %{_mandir}/man1/llvm-config*
 %{_includedir}/llvm
@@ -437,7 +440,7 @@ fi
 %doc %{_pkgdocdir}/html
 
 %files static
-%if !0%{?compat_build}
+%if %{without compat_build}
 %{_libdir}/*.a
 %exclude %{_libdir}/libLLVMTestingSupport.a
 %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
@@ -445,7 +448,7 @@ fi
 %{_libdir}/%{name}/lib/*.a
 %endif
 
-%if !0%{?compat_build}
+%if %{without compat_build}
 
 %files test
 %{_libexecdir}/tests/llvm/
@@ -469,6 +472,9 @@ fi
 %endif
 
 %changelog
+* Tue Jul 30 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-9
+- Sync with llvm8.0 spec file
+
 * Thu Jul 25 2019 Fedora Release Engineering <releng@fedoraproject.org> - 8.0.0-8.1
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
 
