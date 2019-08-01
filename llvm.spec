@@ -8,14 +8,13 @@
 
 %bcond_with compat_build
 
-%global build_llvm_bindir %{buildroot}%{_bindir}
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global maj_ver 8
+%global maj_ver 9
 %global min_ver 0
 %global patch_ver 0
-#%%global rc_ver 4
-%global baserelease 9
+%global rc_ver 2
+%global baserelease 0.1
 
 
 %if %{with compat_build}
@@ -37,7 +36,6 @@
 %endif
 
 %global build_install_prefix %{buildroot}%{install_prefix}
-%global build_pkgdocdir %{buildroot}%{_pkgdocdir}
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
@@ -52,9 +50,7 @@ Source1:	run-lit-tests
 Source2:	lit.fedora.cfg.py
 %endif
 
-Patch5:		0001-PATCH-llvm-config.patch
-Patch7:		0001-PATCH-Filter-out-cxxflags-not-supported-by-clang.patch
-Patch8:		0001-Fix-the-buildbot-issue-introduced-by-r351421.patch
+Patch0:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -154,7 +150,7 @@ LLVM's modified googletest sources.
 %endif
 
 %prep
-%autosetup -n llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src -p1
+%autosetup -n llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src -p2
 
 pathfix.py -i %{__python3} -pn \
 	test/BugPoint/compile-custom.ll.py \
@@ -217,7 +213,7 @@ cd _build
 	-DLLVM_INSTALL_UTILS:BOOL=OFF \
 %else
 	-DLLVM_INSTALL_UTILS:BOOL=ON \
-	-DLLVM_UTILS_INSTALL_DIR:PATH=%{build_llvm_bindir} \
+	-DLLVM_UTILS_INSTALL_DIR:PATH=%{_bindir} \
 	-DLLVM_TOOLS_INSTALL_DIR:PATH=bin \
 %endif
 	\
@@ -233,14 +229,13 @@ cd _build
 	-DLLVM_INSTALL_TOOLCHAIN_ONLY:BOOL=OFF \
 	\
 	-DSPHINX_WARNINGS_AS_ERRORS=OFF \
-	-DCMAKE_INSTALL_PREFIX=%{build_install_prefix} \
-	-DLLVM_INSTALL_SPHINX_HTML_DIR=%{build_pkgdocdir}/html \
+	-DLLVM_INSTALL_SPHINX_HTML_DIR=%{_pkgdocdir}/html \
 	-DSPHINX_EXECUTABLE=%{_bindir}/sphinx-build-3
 
-ninja -v
+%ninja_build
 
 %install
-ninja -C _build -v install
+%ninja_install -C _build
 
 
 %if %{without compat_build}
@@ -256,7 +251,7 @@ mv %{buildroot}%{_mandir}/man1/tblgen.1 %{buildroot}%{_mandir}/man1/llvm-tblgen.
 
 for f in %{test_binaries}
 do
-    install -m 0755 ./_build/bin/$f %{build_llvm_bindir}
+    install -m 0755 ./_build/bin/$f %{buildroot}%{_bindir}
 done
 
 
@@ -412,7 +407,7 @@ fi
 %{pkg_libdir}/libLTO.so*
 %exclude %{pkg_libdir}/libLTO.so
 %endif
-%{pkg_libdir}/libOptRemarks.so*
+%{pkg_libdir}/libRemarks.so*
 
 %files devel
 %if %{without compat_build}
@@ -472,6 +467,9 @@ fi
 %endif
 
 %changelog
+* Thu Aug 01 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-0.1.rc2
+- 9.0.0-rc2 Release
+
 * Tue Jul 30 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-9
 - Sync with llvm8.0 spec file
 
