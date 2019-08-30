@@ -13,8 +13,8 @@
 %global maj_ver 9
 %global min_ver 0
 %global patch_ver 0
-%global rc_ver 2
-%global baserelease 0.1
+%global rc_ver 3
+%global baserelease 0.2
 
 
 %if %{with compat_build}
@@ -51,6 +51,9 @@ Source2:	lit.fedora.cfg.py
 %endif
 
 Patch0:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
+# TODO: I'm not sure why this is needed.  Could be a change in newer version
+# of gold.
+Patch1:		0001-Pass-target-to-gold-linker-to-avoid-faliures-on-i686.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -467,6 +470,9 @@ fi
 %endif
 
 %changelog
+* Fri Aug 30 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-0.2.rc3
+- 9.0.0-rc3 Release
+
 * Thu Aug 01 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-0.1.rc2
 - 9.0.0-rc2 Release
 
