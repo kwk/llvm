@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 0
 %global rc_ver 3
-%global baserelease 0.2
+%global baserelease 0.3
 
 
 %if %{with compat_build}
@@ -54,6 +54,7 @@ Patch0:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 # TODO: I'm not sure why this is needed.  Could be a change in newer version
 # of gold.
 Patch1:		0001-Pass-target-to-gold-linker-to-avoid-faliures-on-i686.patch
+Patch2:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -470,6 +471,9 @@ fi
 %endif
 
 %changelog
+* Fri Sep 06 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-0.3.rc3
+- Fix patch for splitting out static library exports
+
 * Fri Aug 30 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-0.2.rc3
 - 9.0.0-rc3 Release
 

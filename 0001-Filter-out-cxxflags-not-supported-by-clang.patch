@@ -1,66 +1,12 @@
-From dc520816332d81d7729fb36933e9767d83c02b57 Mon Sep 17 00:00:00 2001
+From d15c835028bcc72a8695d047f0acaa530aa54716 Mon Sep 17 00:00:00 2001
 From: Tom Stellard <tstellar@redhat.com>
 Date: Wed, 31 Jul 2019 20:43:42 -0700
 Subject: [PATCH] Filter out cxxflags not supported by clang
 
 ---
- llvm/cmake/modules/AddLLVM.cmake       | 6 +++++-
- llvm/cmake/modules/CMakeLists.txt      | 3 +++
- llvm/cmake/modules/LLVMConfig.cmake.in | 2 ++
- llvm/tools/llvm-config/CMakeLists.txt  | 4 ++++
- 4 files changed, 14 insertions(+), 1 deletion(-)
+ llvm/tools/llvm-config/CMakeLists.txt | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/llvm/cmake/modules/AddLLVM.cmake b/llvm/cmake/modules/AddLLVM.cmake
-index 619e986..5d38db9 100644
---- a/llvm/cmake/modules/AddLLVM.cmake
-+++ b/llvm/cmake/modules/AddLLVM.cmake
-@@ -901,7 +901,11 @@ macro(add_llvm_tool name)
-       set(export_to_llvmexports)
-       if(${name} IN_LIST LLVM_DISTRIBUTION_COMPONENTS OR
-           NOT LLVM_DISTRIBUTION_COMPONENTS)
--        set(export_to_llvmexports EXPORT LLVMExports)
-+        if (ARG_SHARED)
-+          set(export_to_llvmexports EXPORT LLVMExports)
-+        else()
-+          set(export_to_llvmexports EXPORT LLVMStaticExports)
-+        endif()
-         set_property(GLOBAL PROPERTY LLVM_HAS_EXPORTS True)
-       endif()
- 
-diff --git a/llvm/cmake/modules/CMakeLists.txt b/llvm/cmake/modules/CMakeLists.txt
-index 9cf22b4..dc982d2 100644
---- a/llvm/cmake/modules/CMakeLists.txt
-+++ b/llvm/cmake/modules/CMakeLists.txt
-@@ -105,6 +105,7 @@ set(LLVM_CONFIG_BINARY_DIR "\${LLVM_INSTALL_PREFIX}")
- set(LLVM_CONFIG_TOOLS_BINARY_DIR "\${LLVM_INSTALL_PREFIX}/bin")
- set(LLVM_CONFIG_EXPORTS_FILE "\${LLVM_CMAKE_DIR}/LLVMExports.cmake")
- set(LLVM_CONFIG_EXPORTS "${LLVM_EXPORTS}")
-+set(LLVM_CONFIG_STATIC_EXPORTS_FILE "\${LLVM_CMAKE_DIR}/LLVMStaticExports.cmake")
- configure_file(
-   LLVMConfig.cmake.in
-   ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/LLVMConfig.cmake
-@@ -121,6 +122,8 @@ if (NOT LLVM_INSTALL_TOOLCHAIN_ONLY)
-   if(llvm_has_exports)
-     install(EXPORT LLVMExports DESTINATION ${LLVM_INSTALL_PACKAGE_DIR}
-             COMPONENT cmake-exports)
-+    install(EXPORT LLVMStaticExports DESTINATION ${LLVM_INSTALL_PACKAGE_DIR}
-+            COMPONENT cmake-exports)
-   endif()
- 
-   install(FILES
-diff --git a/llvm/cmake/modules/LLVMConfig.cmake.in b/llvm/cmake/modules/LLVMConfig.cmake.in
-index 536031f..6ef54a0 100644
---- a/llvm/cmake/modules/LLVMConfig.cmake.in
-+++ b/llvm/cmake/modules/LLVMConfig.cmake.in
-@@ -89,6 +89,8 @@ if(NOT TARGET LLVMSupport)
-   set(LLVM_EXPORTED_TARGETS "@LLVM_CONFIG_EXPORTS@")
-   include("@LLVM_CONFIG_EXPORTS_FILE@")
-   @llvm_config_include_buildtree_only_exports@
-+
-+  include("@LLVM_CONFIG_STATIC_EXPORTS_FILE@" OPTIONAL)
- endif()
- 
- # By creating intrinsics_gen here, subprojects that depend on LLVM's
 diff --git a/llvm/tools/llvm-config/CMakeLists.txt b/llvm/tools/llvm-config/CMakeLists.txt
 index 8e97a10..9b9b7d1 100644
 --- a/llvm/tools/llvm-config/CMakeLists.txt
