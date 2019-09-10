@@ -1,0 +1,28 @@
+- hosts: localhost
+  pre_tasks:
+  # Make sure we uninstall all sub-packages, so we can test that the cmake files
+  # in llvm-devel are useable when only llvm-devel is installed.
+  - name: Uninstall llvm sub-packages
+    package:
+      name: "{{ item }}"
+      state: absent
+    tags: classic
+    with_items:
+      - llvm
+      - llvm-devel
+      - llvm-doc
+      - llvm-googletest
+      - llvm-libs
+      - llvm-static
+      - llvm-test
+  roles:
+  - role: standard-test-basic
+    tags: classic
+    required_packages:
+      - llvm-devel
+      - cmake
+      - ninja-build
+      - gcc
+      - gcc-c++
+    tests:
+      - llvm-devel-cmake

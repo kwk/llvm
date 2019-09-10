@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 0
 %global rc_ver 3
-%global baserelease 0.3
+%global baserelease 0.4
 
 
 %if %{with compat_build}
@@ -55,6 +55,7 @@ Patch0:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 # of gold.
 Patch1:		0001-Pass-target-to-gold-linker-to-avoid-faliures-on-i686.patch
 Patch2:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
+Patch3:		0001-CMake-Split-test-binary-exports-into-their-own-expor.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -251,7 +252,7 @@ ln -s llvm-config.1 %{buildroot}%{_mandir}/man1/llvm-config-%{__isa_bits}.1
 mv %{buildroot}%{_mandir}/man1/tblgen.1 %{buildroot}%{_mandir}/man1/llvm-tblgen.1
 
 # Install binaries needed for lit tests
-%global test_binaries FileCheck count lli-child-target llvm-PerfectShuffle llvm-isel-fuzzer llvm-opt-fuzzer not yaml-bench
+%global test_binaries llvm-isel-fuzzer llvm-opt-fuzzer
 
 for f in %{test_binaries}
 do
@@ -422,6 +423,7 @@ fi
 %{_libdir}/libLLVM.so
 %{_libdir}/cmake/llvm
 %exclude %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
+%exclude %{_libdir}/cmake/llvm/LLVMTestExports.cmake
 %else
 %{_bindir}/llvm-config%{exec_suffix}-%{__isa_bits}
 %{pkg_bindir}/llvm-config
@@ -463,6 +465,7 @@ fi
 %{_bindir}/llvm-opt-fuzzer
 %{_libdir}/BugpointPasses.so
 %{_libdir}/LLVMHello.so
+%{_libdir}/cmake/llvm/LLVMTestExports.cmake
 
 %files googletest
 %{_datadir}/llvm/src/utils
@@ -471,6 +474,9 @@ fi
 %endif
 
 %changelog
+* Tue Sep 10 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-0.4.rc3
+- Split out test executables into their own export file
+
 * Fri Sep 06 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-0.3.rc3
 - Fix patch for splitting out static library exports
 
