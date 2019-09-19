@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 0
 %global rc_ver 3
-%global baserelease 0.4
+%global baserelease 0.5
 
 
 %if %{with compat_build}
@@ -200,6 +200,9 @@ cd _build
 	-DLLVM_ENABLE_RTTI:BOOL=ON \
 %if %{with gold}
 	-DLLVM_BINUTILS_INCDIR=%{_includedir} \
+%endif
+%ifnarch s390 s390x
+	-DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=AVR \
 %endif
 	\
 	-DLLVM_BUILD_RUNTIME:BOOL=ON \
@@ -474,6 +477,9 @@ fi
 %endif
 
 %changelog
+* Wed Sep 18 2019 sguelton@redhat.com - 9.0.0-0.5.rc3
+- Support avr target, see rhbz#1718492
+
 * Tue Sep 10 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-0.4.rc3
 - Split out test executables into their own export file
 
