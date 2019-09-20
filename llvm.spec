@@ -13,8 +13,8 @@
 %global maj_ver 9
 %global min_ver 0
 %global patch_ver 0
-%global rc_ver 3
-%global baserelease 0.5
+#%%global rc_ver 3
+%global baserelease 1
 
 
 %if %{with compat_build}
@@ -477,6 +477,9 @@ fi
 %endif
 
 %changelog
+* Thu Sep 19 2019 sguelton@redhat.com - 9.0.0-1
+- 9.0.0 Release
+
 * Wed Sep 18 2019 sguelton@redhat.com - 9.0.0-0.5.rc3
 - Support avr target, see rhbz#1718492
 
