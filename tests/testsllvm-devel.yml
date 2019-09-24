@@ -24,5 +24,8 @@
       - ninja-build
       - gcc
       - gcc-c++
+    repositories:
+      - repo: "https://src.fedoraproject.org/tests/llvm.git"
+        dest: "llvm"
     tests:
-      - llvm-devel-cmake
+      - llvm/llvm-devel-cmake
