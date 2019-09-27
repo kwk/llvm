@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 0
 #%%global rc_ver 3
-%global baserelease 1
+%global baserelease 2
 
 
 %if %{with compat_build}
@@ -70,7 +70,6 @@ BuildRequires:	multilib-rpm-config
 %if %{with gold}
 BuildRequires:	binutils-devel
 %endif
-BuildRequires:	libstdc++-static
 %ifarch %{valgrind_arches}
 # Enable extra functionality when run the LLVM JIT under valgrind.
 BuildRequires:	valgrind-devel
@@ -477,6 +476,9 @@ fi
 %endif
 
 %changelog
+* Fri Sep 27 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-2
+- Remove unneeded BuildRequires: libstdc++-static
+
 * Thu Sep 19 2019 sguelton@redhat.com - 9.0.0-1
 - 9.0.0 Release
 
