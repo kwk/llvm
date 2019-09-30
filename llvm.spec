@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 0
 #%%global rc_ver 3
-%global baserelease 2
+%global baserelease 3
 
 
 %if %{with compat_build}
@@ -164,7 +164,7 @@ pathfix.py -i %{__python3} -pn \
 mkdir -p _build
 cd _build
 
-%ifarch s390 s390x %{arm} %ix86
+%ifarch s390 %{arm} %ix86
 # Decrease debuginfo verbosity to reduce memory consumption during final library linking
 %global optflags %(echo %{optflags} | sed 's/-g /-g1 /')
 %endif
@@ -180,7 +180,7 @@ cd _build
 	-DLLVM_PARALLEL_LINK_JOBS=1 \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DCMAKE_INSTALL_RPATH=";" \
-%ifarch s390 s390x %{arm} %ix86
+%ifarch s390 %{arm} %ix86
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 %endif
@@ -239,6 +239,10 @@ cd _build
 	-DLLVM_INSTALL_SPHINX_HTML_DIR=%{_pkgdocdir}/html \
 	-DSPHINX_EXECUTABLE=%{_bindir}/sphinx-build-3
 
+# Build libLLVM.so first.  This ensures that when libLLVM.so is linking, there
+# are no other compile jobs running.  This will help reduce OOM errors on the
+# builders without having to artificially limit the number of concurrent jobs.
+%ninja_build LLVM
 %ninja_build
 
 %install
@@ -476,6 +480,9 @@ fi
 %endif
 
 %changelog
+* Mon Sep 30 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-3
+- Build libLLVM.so first to avoid OOM errors
+
 * Fri Sep 27 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-2
 - Remove unneeded BuildRequires: libstdc++-static
 
