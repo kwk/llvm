@@ -1,0 +1,42 @@
+From 29b4d8f19e30910c099c5453da258843d6b7869a Mon Sep 17 00:00:00 2001
+From: serge_sans_paille <sguelton@redhat.com>
+Date: Tue, 24 Sep 2019 10:20:08 +0200
+Subject: [PATCH] [AVR] Fix endianness handling in AVR MC
+
+Differential Revision: https://reviews.llvm.org/D67926
+---
+ llvm/lib/Target/AVR/MCTargetDesc/AVRMCCodeEmitter.cpp | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/llvm/lib/Target/AVR/MCTargetDesc/AVRMCCodeEmitter.cpp b/llvm/lib/Target/AVR/MCTargetDesc/AVRMCCodeEmitter.cpp
+index bc048877868..db995e24756 100644
+--- a/llvm/lib/Target/AVR/MCTargetDesc/AVRMCCodeEmitter.cpp
++++ b/llvm/lib/Target/AVR/MCTargetDesc/AVRMCCodeEmitter.cpp
+@@ -25,6 +25,7 @@
+ #include "llvm/MC/MCRegisterInfo.h"
+ #include "llvm/MC/MCSubtargetInfo.h"
+ #include "llvm/Support/Casting.h"
++#include "llvm/Support/EndianStream.h"
+ #include "llvm/Support/raw_ostream.h"
+ 
+ #define DEBUG_TYPE "mccodeemitter"
+@@ -268,14 +269,11 @@ unsigned AVRMCCodeEmitter::getMachineOpValue(const MCInst &MI,
+ void AVRMCCodeEmitter::emitInstruction(uint64_t Val, unsigned Size,
+                                        const MCSubtargetInfo &STI,
+                                        raw_ostream &OS) const {
+-  const uint16_t *Words = reinterpret_cast<uint16_t const *>(&Val);
+   size_t WordCount = Size / 2;
+ 
+   for (int64_t i = WordCount - 1; i >= 0; --i) {
+-    uint16_t Word = Words[i];
+-
+-    OS << (uint8_t) ((Word & 0x00ff) >> 0);
+-    OS << (uint8_t) ((Word & 0xff00) >> 8);
++    uint16_t Word = (Val >> (i * 16)) & 0xFFFF;
++    support::endian::write(OS, Word, support::endianness::little);
+   }
+ }
+ 
+-- 
+2.20.1
+

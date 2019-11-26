@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 0
 #%%global rc_ver 3
-%global baserelease 3
+%global baserelease 4
 
 
 %if %{with compat_build}
@@ -56,6 +56,7 @@ Patch0:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
 Patch1:		0001-Pass-target-to-gold-linker-to-avoid-faliures-on-i686.patch
 Patch2:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch3:		0001-CMake-Split-test-binary-exports-into-their-own-expor.patch
+Patch4:		0001-AVR-Fix-endianness-handling-in-AVR-MC.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -200,9 +201,7 @@ cd _build
 %if %{with gold}
 	-DLLVM_BINUTILS_INCDIR=%{_includedir} \
 %endif
-%ifnarch s390 s390x
 	-DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=AVR \
-%endif
 	\
 	-DLLVM_BUILD_RUNTIME:BOOL=ON \
 	\
@@ -480,6 +479,9 @@ fi
 %endif
 
 %changelog
+* Mon Nov 25 2019 sguelton@redhat.com - 9.0.0-4
+- Activate AVR on all architectures
+
 * Mon Sep 30 2019 Tom Stellard <tstellar@redhat.com> - 9.0.0-3
 - Build libLLVM.so first to avoid OOM errors
 
