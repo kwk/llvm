@@ -12,9 +12,9 @@
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 %global maj_ver 9
 %global min_ver 0
-%global patch_ver 0
+%global patch_ver 1
 #%%global rc_ver 3
-%global baserelease 4
+%global baserelease 1
 
 
 %if %{with compat_build}
@@ -479,6 +479,9 @@ fi
 %endif
 
 %changelog
+* Thu Dec 19 2019 tstellar@redhat.com - 9.0.1-1
+- 9.0.1 Release
+
 * Mon Nov 25 2019 sguelton@redhat.com - 9.0.0-4
 - Activate AVR on all architectures
 
