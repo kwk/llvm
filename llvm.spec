@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 1
 #%%global rc_ver 3
-%global baserelease 1
+%global baserelease 2
 
 
 %if %{with compat_build}
@@ -57,6 +57,10 @@ Patch1:		0001-Pass-target-to-gold-linker-to-avoid-faliures-on-i686.patch
 Patch2:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch3:		0001-CMake-Split-test-binary-exports-into-their-own-expor.patch
 Patch4:		0001-AVR-Fix-endianness-handling-in-AVR-MC.patch
+
+# Fix crash in kernel bpf self-tests
+Patch5: 0001-BPF-Handling-type-conversions-correctly-for-CO-RE.patch
+Patch6: 0001-BPF-annotate-DIType-metadata-for-builtin-preseve_arr.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -479,6 +483,9 @@ fi
 %endif
 
 %changelog
+* Fri Jan 10 2020 Tom Stellard <tstellar@redhat.com> - 9.0.1-2
+- Fix crash with kernel bpf self-tests
+
 * Thu Dec 19 2019 tstellar@redhat.com - 9.0.1-1
 - 9.0.1 Release
 
