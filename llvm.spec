@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 1
 #%%global rc_ver 3
-%global baserelease 2
+%global baserelease 3
 
 
 %if %{with compat_build}
@@ -97,6 +97,7 @@ tools as well as libraries with equivalent functionality.
 %package devel
 Summary:	Libraries and header files for LLVM
 Requires:	%{name}%{?_isa} = %{version}-%{release}
+Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 # The installed LLVM cmake files will add -ledit to the linker flags for any
 # app that requires the libLLVMLineEditor, so we need to make sure
 # libedit-devel is available.
@@ -136,6 +137,7 @@ Static libraries for the LLVM compiler infrastructure.
 %package test
 Summary:	LLVM regression tests
 Requires:	%{name}%{?_isa} = %{version}-%{release}
+Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 Requires:	python3-lit
 # The regression tests need gold.
 Requires:	binutils
@@ -483,6 +485,9 @@ fi
 %endif
 
 %changelog
+* Fri Jan 17 2020 Tom Stellard <tstellar@redhat.com> - 9.0.1-3
+- Add explicit Requires from sub-packages to llvm-libs
+
 * Fri Jan 10 2020 Tom Stellard <tstellar@redhat.com> - 9.0.1-2
 - Fix crash with kernel bpf self-tests
 
