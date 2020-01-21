@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 1
 #%%global rc_ver 3
-%global baserelease 3
+%global baserelease 4
 
 
 %if %{with compat_build}
@@ -485,6 +485,9 @@ fi
 %endif
 
 %changelog
+* Tue Jan 21 2020 Tom Stellard <tstellar@redhat.com> - 9.0.1-4
+- Rebuild after previous build failed to strip binaries
+
 * Fri Jan 17 2020 Tom Stellard <tstellar@redhat.com> - 9.0.1-3
 - Add explicit Requires from sub-packages to llvm-libs
 
