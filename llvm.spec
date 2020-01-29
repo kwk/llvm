@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 1
 #%%global rc_ver 3
-%global baserelease 4
+%global baserelease 5
 
 
 %if %{with compat_build}
@@ -485,6 +485,9 @@ fi
 %endif
 
 %changelog
+* Wed Jan 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 9.0.1-5
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
+
 * Tue Jan 21 2020 Tom Stellard <tstellar@redhat.com> - 9.0.1-4
 - Rebuild after previous build failed to strip binaries
 
