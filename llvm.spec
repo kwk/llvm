@@ -40,7 +40,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	6%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	7%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -52,6 +52,7 @@ Source2:	lit.fedora.cfg.py
 Patch5:		0001-PATCH-llvm-config.patch
 Patch7:		0001-PATCH-Filter-out-cxxflags-not-supported-by-clang.patch
 Patch8:		0001-Fix-the-buildbot-issue-introduced-by-r351421.patch
+Patch9:		0001-AtomicExpand-Fix-a-crash-bug-when-lowering-unordered.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -462,6 +463,9 @@ fi
 %endif
 
 %changelog
+* Sat Feb 01 2020 Josh Stone <jistone@redhat.com> - 8.0.0-7
+- Fix a crash bug when lowering unordered loads to cmpxchg (rhbz1797127)
+
 * Wed Apr 24 2019 Tom Stellard <tstellar@redhat.com> - 8.0.0-6
 - Make sure we aren't passing -g on s390x
 
