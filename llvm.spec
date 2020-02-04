@@ -10,11 +10,12 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global maj_ver 9
+%global rc_ver 1
+%global baserelease 0.1
+%global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
+%global maj_ver 10
 %global min_ver 0
-%global patch_ver 1
-#%%global rc_ver 3
-%global baserelease 5
+%global patch_ver 0
 
 
 %if %{with compat_build}
@@ -44,23 +45,16 @@ Summary:	The Low Level Virtual Machine
 
 License:	NCSA
 URL:		http://llvm.org
-Source0:	http://%{?rc_ver:pre}releases.llvm.org/%{version}/%{?rc_ver:rc%{rc_ver}}/llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src.tar.xz
+Source0:	http://%{?rc_ver:pre}releases.llvm.org/%{version}/%{?rc_ver:rc%{rc_ver}}/%{llvm_srcdir}.tar.xz
 %if %{without compat_build}
 Source1:	run-lit-tests
 Source2:	lit.fedora.cfg.py
 %endif
+Source3:	https://%{?rc_ver:pre}releases.llvm.org/%{version}/%{?rc_ver:rc%{rc_ver}}/%{llvm_srcdir}.tar.xz.sig
+Source4:	https://prereleases.llvm.org/%{version}/hans-gpg-key.asc
 
-Patch0:		0001-Filter-out-cxxflags-not-supported-by-clang.patch
-# TODO: I'm not sure why this is needed.  Could be a change in newer version
-# of gold.
-Patch1:		0001-Pass-target-to-gold-linker-to-avoid-faliures-on-i686.patch
-Patch2:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
-Patch3:		0001-CMake-Split-test-binary-exports-into-their-own-expor.patch
-Patch4:		0001-AVR-Fix-endianness-handling-in-AVR-MC.patch
-
-# Fix crash in kernel bpf self-tests
-Patch5: 0001-BPF-Handling-type-conversions-correctly-for-CO-RE.patch
-Patch6: 0001-BPF-annotate-DIType-metadata-for-builtin-preseve_arr.patch
+Patch0:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
+Patch1:		0001-CMake-Split-test-binary-exports-into-their-own-expor.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -234,6 +228,7 @@ cd _build
 	-DLLVM_ENABLE_SPHINX:BOOL=ON \
 	-DLLVM_ENABLE_DOXYGEN:BOOL=OFF \
 	\
+	-DLLVM_VERSION_SUFFIX='' \
 	-DLLVM_BUILD_LLVM_DYLIB:BOOL=ON \
 	-DLLVM_DYLIB_EXPORT_ALL:BOOL=ON \
 	-DLLVM_LINK_LLVM_DYLIB:BOOL=ON \
@@ -485,6 +480,9 @@ fi
 %endif
 
 %changelog
+* Fri Jan 31 2020 sguelton@redhat.com - 10.0.0-0.1.rc1
+- 10.0.0 rc1
+
 * Wed Jan 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 9.0.1-5
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
 
