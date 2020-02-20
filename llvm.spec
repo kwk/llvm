@@ -10,10 +10,10 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-#%%global rc_ver 6
-%global baserelease 10
+%global rc_ver 1
+%global baserelease 0.1
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
-%global maj_ver 10
+%global maj_ver 11
 %global min_ver 0
 %global patch_ver 0
 
@@ -57,12 +57,6 @@ Source2:	lit.fedora.cfg.py
 %endif
 Source4:	https://prereleases.llvm.org/%{version}/hans-gpg-key.asc
 
-Patch0:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
-%if %{without compat_build}
-Patch1:		0001-CMake-Split-test-binary-exports-into-their-own-expor.patch
-%endif
-Patch2:		bab5908df544680ada0a3cf431f55aeccfbdb321.patch
-Patch3:		0001-llvm-Avoid-linking-llvm-cfi-verify-to-duplicate-libs.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -108,6 +102,15 @@ Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 # app that requires the libLLVMLineEditor, so we need to make sure
 # libedit-devel is available.
 Requires:	libedit-devel
+# The installed cmake files reference binaries from llvm-test and llvm-static.
+# We tried in the past to split the cmake exports for these binaries out into
+# separate files, so that llvm-devel would not need to Require these packages,
+# but this caused bugs (rhbz#1773678) and forced us to carry two non-upstream
+# patches.
+Requires:	llvm-static%{?_isa} = %{version}-%{release}
+Requires:	llvm-test%{?_isa} = %{version}-%{release}
+
+
 Requires(post):	%{_sbindir}/alternatives
 Requires(postun):	%{_sbindir}/alternatives
 
@@ -181,9 +184,10 @@ pathfix.py -i %{__python3} -pn \
 # LLVM-Unit :: Target/AArch64/./AArch64Tests/InstSizes.PATCHPOINT
 # LLVM-Unit :: Target/AArch64/./AArch64Tests/InstSizes.STACKMAP
 # LLVM-Unit :: Target/AArch64/./AArch64Tests/InstSizes.TLSDESC_CALLSEQ
-%ifarch s390x
+# On X86_64, LTO builds of TableGen crash.  This can be reproduced by:
+# %%cmake_build --target include/llvm/IR/IntrinsicsAArch64.h
+# Because of these failures, lto is disabled for now.
 %global _lto_cflags %{nil}
-%endif
 
 %ifarch s390 %{arm} %ix86
 # Decrease debuginfo verbosity to reduce memory consumption during final library linking
@@ -469,8 +473,6 @@ fi
 %{_includedir}/llvm-c
 %{_libdir}/libLLVM.so
 %{_libdir}/cmake/llvm
-%exclude %{_libdir}/cmake/llvm/LLVMStaticExports.cmake
-%exclude %{_libdir}/cmake/llvm/LLVMTestExports.cmake
 %else
 %{_bindir}/llvm-config%{exec_suffix}-%{__isa_bits}
 %{pkg_bindir}/llvm-config
@@ -493,7 +495,6 @@ fi
 %if %{without compat_build}
 %{_libdir}/*.a
 %exclude %{_libdir}/libLLVMTestingSupport.a
-%{_libdir}/cmake/llvm/LLVMStaticExports.cmake
 %else
 %{_libdir}/%{name}/lib/*.a
 %endif
@@ -517,7 +518,6 @@ fi
 %{_bindir}/llvm-opt-fuzzer
 %{_libdir}/BugpointPasses.so
 %{_libdir}/LLVMHello.so
-%{_libdir}/cmake/llvm/LLVMTestExports.cmake
 
 %files googletest
 %license LICENSE.TXT
@@ -527,6 +527,10 @@ fi
 %endif
 
 %changelog
+* Thu Aug 06 2020 Tom Stellard <tstellar@redhat.com> - 11.0.0-0.1-rc1
+- LLVM 11.0.0-rc1 Release
+- Make llvm-devel require llvm-static and llvm-test
+
 * Tue Aug 04 2020 Tom Stellard <tstellar@redhat.com> - 10.0.0-10
 - Backport upstream patch to fix build with -flto.
 - Disable LTO on s390x to work-around unit test failures.
