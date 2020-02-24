@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 1
 #%%global rc_ver 3
-%global baserelease 4
+%global baserelease 5
 
 
 %if %{with compat_build}
@@ -61,6 +61,9 @@ Patch4:		0001-AVR-Fix-endianness-handling-in-AVR-MC.patch
 # Fix crash in kernel bpf self-tests
 Patch5: 0001-BPF-Handling-type-conversions-correctly-for-CO-RE.patch
 Patch6: 0001-BPF-annotate-DIType-metadata-for-builtin-preseve_arr.patch
+
+# Fix Rust codegen bug, https://github.com/rust-lang/rust/issues/69225
+Patch7:	0001-Revert-SCEV-add-no-wrap-flag-for-SCEVAddExpr.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -485,6 +488,9 @@ fi
 %endif
 
 %changelog
+* Mon Feb 24 2020 Josh Stone <jistone@redhat.com> - 9.0.1-5
+- Fix a codegen bug for Rust
+
 * Tue Jan 21 2020 Tom Stellard <tstellar@redhat.com> - 9.0.1-4
 - Rebuild after previous build failed to strip binaries
 
