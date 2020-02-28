@@ -10,8 +10,8 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global rc_ver 2
-%global baserelease 0.1
+%global rc_ver 4
+%global baserelease 0.2
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
@@ -480,6 +480,9 @@ fi
 %endif
 
 %changelog
+* Sat Mar 14 2020 sguelton@redhat.com - 10.0.0-0.2.rc4
+- 10.0.0 rc4
+
 * Fri Feb 14 2020 sguelton@redhat.com - 10.0.0-0.1.rc2
 - 10.0.0 rc2
 
