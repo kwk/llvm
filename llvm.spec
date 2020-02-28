@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 %global rc_ver 2
-%global baserelease 0.1
+%global baserelease 0.2
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
@@ -55,6 +55,7 @@ Source4:	https://prereleases.llvm.org/%{version}/hans-gpg-key.asc
 
 Patch0:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch1:		0001-CMake-Split-test-binary-exports-into-their-own-expor.patch
+Patch2:		0001-No-longer-generate-calls-to-_finite.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -480,6 +481,9 @@ fi
 %endif
 
 %changelog
+* Fri Feb 28 2020 sguelton@redhat.com - 10.0.0-0.2.rc2
+- Remove *_finite support, see rhbz#1803203
+
 * Fri Feb 14 2020 sguelton@redhat.com - 10.0.0-0.1.rc2
 - 10.0.0 rc2
 
