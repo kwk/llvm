@@ -10,8 +10,8 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global rc_ver 6
-%global baserelease 0.6
+#%%global rc_ver 6
+%global baserelease 1
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
@@ -45,12 +45,17 @@ Summary:	The Low Level Virtual Machine
 
 License:	NCSA
 URL:		http://llvm.org
-Source0:	http://%{?rc_ver:pre}releases.llvm.org/%{version}/%{?rc_ver:rc%{rc_ver}}/%{llvm_srcdir}.tar.xz
+%if 0%{?rc_ver:1}
+Source0:	https://prereleases.llvm.org/%{version}/rc%{rc_ver}/%{llvm_srcdir}.tar.xz
+Source3:	https://prereleases.llvm.org/%{version}/rc%{rc_ver}/%{llvm_srcdir}.tar.xz.sig
+%else
+Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{llvm_srcdir}.tar.xz
+Source3:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{llvm_srcdir}.tar.xz.sig
+%endif
 %if %{without compat_build}
 Source1:	run-lit-tests
 Source2:	lit.fedora.cfg.py
 %endif
-Source3:	https://%{?rc_ver:pre}releases.llvm.org/%{version}/%{?rc_ver:rc%{rc_ver}}/%{llvm_srcdir}.tar.xz.sig
 Source4:	https://prereleases.llvm.org/%{version}/hans-gpg-key.asc
 
 Patch0:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
@@ -155,7 +160,7 @@ LLVM's modified googletest sources.
 %endif
 
 %prep
-%autosetup -n llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src -p2
+%autosetup -n %{llvm_srcdir} -p2
 
 pathfix.py -i %{__python3} -pn \
 	test/BugPoint/compile-custom.ll.py \
@@ -480,6 +485,9 @@ fi
 %endif
 
 %changelog
+* Wed Mar 25 2020 sguelton@redhat.com - 10.0.0-1
+- 10.0.0 final
+
 * Mon Mar 23 2020 sguelton@redhat.com - 10.0.0-0.6.rc6
 - 10.0.0 rc6
 
