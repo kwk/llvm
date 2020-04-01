@@ -59,7 +59,9 @@ Source2:	lit.fedora.cfg.py
 Source4:	https://prereleases.llvm.org/%{version}/hans-gpg-key.asc
 
 Patch0:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
+%if %{without compat_build}
 Patch1:		0001-CMake-Split-test-binary-exports-into-their-own-expor.patch
+%endif
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -233,7 +235,9 @@ cd _build
 	-DLLVM_ENABLE_SPHINX:BOOL=ON \
 	-DLLVM_ENABLE_DOXYGEN:BOOL=OFF \
 	\
+%if %{without compat_build}
 	-DLLVM_VERSION_SUFFIX='' \
+%endif
 	-DLLVM_BUILD_LLVM_DYLIB:BOOL=ON \
 	-DLLVM_DYLIB_EXPORT_ALL:BOOL=ON \
 	-DLLVM_LINK_LLVM_DYLIB:BOOL=ON \
@@ -241,6 +245,7 @@ cd _build
 	-DLLVM_INSTALL_TOOLCHAIN_ONLY:BOOL=OFF \
 	\
 	-DSPHINX_WARNINGS_AS_ERRORS=OFF \
+	-DCMAKE_INSTALL_PREFIX=%{install_prefix} \
 	-DLLVM_INSTALL_SPHINX_HTML_DIR=%{_pkgdocdir}/html \
 	-DSPHINX_EXECUTABLE=%{_bindir}/sphinx-build-3
 
@@ -333,7 +338,7 @@ cp -R unittests/DebugInfo/PDB/Inputs %{buildroot}%{_datadir}/llvm/src/unittests/
 mkdir -p %{buildroot}/%{_bindir}
 for f in %{buildroot}/%{install_bindir}/*; do
   filename=`basename $f`
-  ln -s %{install_bindir}/$filename %{buildroot}/%{_bindir}/$filename%{exec_suffix}
+  ln -s ../../../%{install_bindir}/$filename %{buildroot}/%{_bindir}/$filename%{exec_suffix}
 done
 
 # Move header files
@@ -353,7 +358,7 @@ EOF
 
 # Add version suffix to man pages and move them to mandir.
 mkdir -p %{buildroot}/%{_mandir}/man1
-for f in `ls %{build_install_prefix}/share/man/man1/*`; do
+for f in %{build_install_prefix}/share/man/man1/*; do
   filename=`basename $f | cut -f 1 -d '.'`
   mv $f %{buildroot}%{_mandir}/man1/$filename%{exec_suffix}.1
 done
