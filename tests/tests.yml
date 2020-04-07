@@ -21,8 +21,8 @@
       # is less than 100MB to ensure it was successfully stripped.
       # https://bugzilla.redhat.com/show_bug.cgi?id=1793250
       - libllvm-size:
-        dir: ./
-        run: test `stat -L -c %s /usr/lib64/libLLVM.so` -lt 100000000
+          dir: ./
+          run: test `stat -L -c %s /usr/lib64/libLLVM.so` -lt 100000000
       # This test ensures that the spec file still builds correctly with
       # %global compat_build 1
       # FIXME: This fails, because the CI system has a hard-coded timeout of 4

@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 #%%global rc_ver 6
-%global baserelease 1
+%global baserelease 2
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
@@ -62,6 +62,7 @@ Patch0:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 %if %{without compat_build}
 Patch1:		0001-CMake-Split-test-binary-exports-into-their-own-expor.patch
 %endif
+Patch2:		bab5908df544680ada0a3cf431f55aeccfbdb321.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -275,6 +276,8 @@ do
     install -m 0755 ./_build/bin/$f %{buildroot}%{_bindir}
 done
 
+# Remove testing of update utility tools
+rm -rf test/tools/UpdateTestChecks
 
 %multilib_fix_c_header --file %{_includedir}/llvm/Config/llvm-config.h
 
@@ -490,6 +493,10 @@ fi
 %endif
 
 %changelog
+* Tue Apr 07 2020 sguelton@redhat.com - 10.0.0-2
+- Do not package UpdateTestChecks tests in llvm-tests
+- Apply upstream patch bab5908df to pass gating tests
+
 * Wed Mar 25 2020 sguelton@redhat.com - 10.0.0-1
 - 10.0.0 final
 

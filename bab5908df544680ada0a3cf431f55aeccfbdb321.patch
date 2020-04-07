@@ -1,0 +1,23 @@
+From bab5908df544680ada0a3cf431f55aeccfbdb321 Mon Sep 17 00:00:00 2001
+From: serge-sans-paille <sguelton@redhat.com>
+Date: Mon, 13 Apr 2020 13:44:15 +0200
+Subject: [PATCH] Normalize working directory when running llvm-mc in test
+
+Otherwise, depending on the lit location used to run the test, llvm-mc adds an
+include_directories entry in the dwarf output, which breaks tests in some setup.
+
+Differential Revision: https://reviews.llvm.org/D77876
+---
+ llvm/test/MC/MachO/gen-dwarf.s | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/llvm/test/MC/MachO/gen-dwarf.s b/llvm/test/MC/MachO/gen-dwarf.s
+index 0813856d625f..6d39d278e818 100644
+--- a/llvm/test/MC/MachO/gen-dwarf.s
++++ b/llvm/test/MC/MachO/gen-dwarf.s
+@@ -1,4 +1,4 @@
+-// RUN: llvm-mc -g -triple i386-apple-darwin10 %s -filetype=obj -o %t
++// RUN: mkdir -p %t0 && cd %t0 && llvm-mc -g -triple i386-apple-darwin10 %s -filetype=obj -o %t
+ // RUN: llvm-dwarfdump -all %t | FileCheck %s
+ 
+ .globl _bar
