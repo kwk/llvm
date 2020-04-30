@@ -7,6 +7,11 @@
       - llvm-test
       - rust
       - cargo
+      - clang
+      - binutils
+    repositories:
+      - repo: "https://src.fedoraproject.org/tests/llvm.git"
+        dest: "llvm"
     tests:
       - regression-tests:
           dir: ./
@@ -28,3 +33,4 @@
       # FIXME: This fails, because the CI system has a hard-coded timeout of 4
       # hours.
       #- build-compat
+      - llvm/binutils-plugin-ar

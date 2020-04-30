@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 #%%global rc_ver 6
-%global baserelease 2
+%global baserelease 3
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
@@ -335,6 +335,12 @@ echo "%{_datadir}/llvm/src/unittests/DebugInfo/PDB" > %{build_llvm_libdir}/unitt
 mkdir -p %{buildroot}%{_datadir}/llvm/src/unittests/DebugInfo/PDB/
 cp -R unittests/DebugInfo/PDB/Inputs %{buildroot}%{_datadir}/llvm/src/unittests/DebugInfo/PDB/
 
+%if %{with gold}
+# Add symlink to lto plugin in the binutils plugin directory.
+%{__mkdir_p} %{buildroot}%{_libdir}/bfd-plugins/
+ln -s %{_libdir}/LLVMgold.so %{buildroot}%{_libdir}/bfd-plugins/
+%endif
+
 %else
 
 # Add version suffix to binaries
@@ -419,6 +425,7 @@ fi
 %if %{without compat_build}
 %if %{with gold}
 %{_libdir}/LLVMgold.so
+%{_libdir}/bfd-plugins/LLVMgold.so
 %endif
 %{_libdir}/libLLVM-%{maj_ver}.%{min_ver}*.so
 %{_libdir}/libLTO.so*
@@ -493,6 +500,9 @@ fi
 %endif
 
 %changelog
+* Thu Apr 30 2020 Tom Stellard <tstellar@redhat.com> - 10.0.0-3
+- Install LLVMgold.so symlink in bfd-plugins directory
+
 * Tue Apr 07 2020 sguelton@redhat.com - 10.0.0-2
 - Do not package UpdateTestChecks tests in llvm-tests
 - Apply upstream patch bab5908df to pass gating tests
