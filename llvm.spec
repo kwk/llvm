@@ -14,7 +14,7 @@
 %global min_ver 0
 %global patch_ver 1
 #%%global rc_ver 3
-%global baserelease 5
+%global baserelease 6
 
 
 %if %{with compat_build}
@@ -64,6 +64,9 @@ Patch6: 0001-BPF-annotate-DIType-metadata-for-builtin-preseve_arr.patch
 
 # Fix Rust codegen bug, https://github.com/rust-lang/rust/issues/69225
 Patch7:	0001-Revert-SCEV-add-no-wrap-flag-for-SCEVAddExpr.patch
+
+# Fix big-endian miscompilation in rustc, rhbz#1837660
+Patch8:	0001-InstCombine-Fix-big-endian-miscompile-of-bitcast-zex.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -488,6 +491,9 @@ fi
 %endif
 
 %changelog
+* Tue May 19 2020 Josh Stone <jistone@redhat.com> - 9.0.1-6
+- Fix big-endian miscompilation in rustc, rhbz#1837660
+
 * Mon Feb 24 2020 Josh Stone <jistone@redhat.com> - 9.0.1-5
 - Fix a codegen bug for Rust
 
