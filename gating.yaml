@@ -3,10 +3,10 @@ product_versions:
   - fedora-*
 decision_context: bodhi_update_push_testing
 rules:
-  - !PassingTestCaseRule {test_case_name: org.centos.prod.ci.pipeline.allpackages-build.package.test.functional.complete}
+  - !PassingTestCaseRule {test_case_name: fedora-ci.koji-build.tier0.functional}
 --- !Policy
 product_versions:
   - fedora-*
 decision_context: bodhi_update_push_stable
 rules:
-  - !PassingTestCaseRule {test_case_name: org.centos.prod.ci.pipeline.allpackages-build.package.test.functional.complete}
+  - !PassingTestCaseRule {test_case_name: fedora-ci.koji-build.tier0.functional}
