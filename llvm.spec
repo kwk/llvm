@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 #%%global rc_ver 6
-%global baserelease 3
+%global baserelease 4
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
@@ -179,16 +179,11 @@ cd _build
 %endif
 
 # force off shared libs as cmake macros turns it on.
-#
-# -DCMAKE_INSTALL_RPATH=";" is a workaround for llvm manually setting the
-# rpath of libraries and binaries.  llvm will skip the manual setting
-# if CAMKE_INSTALL_RPATH is set to a value, but cmake interprets this value
-# as nothing, so it sets the rpath to "" when installing.
 %cmake .. -G Ninja \
 	-DBUILD_SHARED_LIBS:BOOL=OFF \
 	-DLLVM_PARALLEL_LINK_JOBS=1 \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	-DCMAKE_INSTALL_RPATH=";" \
+	-DCMAKE_SKIP_RPATH:BOOL=ON \
 %ifarch s390 %{arm} %ix86
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
@@ -380,7 +375,7 @@ rm -Rf %{build_install_prefix}/share/opt-viewer
 
 %check
 # TODO: Fix test failures on arm
-ninja check-all -C _build || \
+LD_LIBRARY_PATH=$PWD/_build/%{_lib} ninja check-all -C _build || \
 %ifarch %{arm}
   :
 %else
@@ -500,6 +495,9 @@ fi
 %endif
 
 %changelog
+* Tue Jun 02 2020 sguelton@redhat.com - 10.0.0-4
+- Instruct cmake not to generate RPATH
+
 * Thu Apr 30 2020 Tom Stellard <tstellar@redhat.com> - 10.0.0-3
 - Install LLVMgold.so symlink in bfd-plugins directory
 
