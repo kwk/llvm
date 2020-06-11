@@ -49,8 +49,8 @@ esac
 cd $(mktemp -d)
 ln -s /usr/include include
 tar -xzf /usr/share/llvm/src/test.tar.gz
-ln -s $ARCH.site.cfg.py test/lit.site.cfg.py
-ln -s $ARCH.site.cfg.py test/Unit/lit.site.cfg.py
+ln -s /usr/share/llvm/src/$ARCH.site.cfg.py test/lit.site.cfg.py
+ln -s /usr/share/llvm/src/$ARCH.Unit.site.cfg.py test/Unit/lit.site.cfg.py
 lit -v -s $threads_arg test \
 	-Dllvm_obj_root=`pwd` \
 	-Dllvm_test_root=`pwd`/test \

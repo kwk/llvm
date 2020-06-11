@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 #%%global rc_ver 6
-%global baserelease 4
+%global baserelease 5
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
@@ -290,6 +290,7 @@ install %{build_libdir}/libLLVMTestingSupport.a %{buildroot}%{_libdir}
 %global lit_unit_cfg test/Unit/%{_arch}.site.cfg.py
 %global lit_fedora_cfg %{_datadir}/llvm/lit.fedora.cfg.py
 
+
 # Install gtest sources so clang can use them for gtest
 install -d %{install_srcdir}
 install -d %{install_srcdir}/utils/
@@ -314,7 +315,12 @@ install -m 0755 %{SOURCE1} %{buildroot}%{_libexecdir}/tests/llvm
 # Install lit tests.  We need to put these in a tarball otherwise rpm will complain
 # about some of the test inputs having the wrong object file format.
 install -d %{buildroot}%{_datadir}/llvm/
-tar -czf %{install_srcdir}/test.tar.gz test/
+
+# The various tar options are there to make sur the archive is the same on 32 and 64 bit arch, i.e.
+# the archive creation is reproducible. Move arch-specific content out of the tarball
+mv %{lit_cfg} %{install_srcdir}/%{_arch}.site.cfg.py
+mv %{lit_unit_cfg} %{install_srcdir}/%{_arch}.Unit.site.cfg.py
+tar --sort=name --mtime='UTC 2020-01-01' -c test/ | gzip -n > %{install_srcdir}/test.tar.gz
 
 # Install the unit test binaries
 mkdir -p %{build_llvm_libdir}
@@ -477,6 +483,8 @@ fi
 %{llvm_libdir}/unittests/
 %{_datadir}/llvm/src/unittests
 %{_datadir}/llvm/src/test.tar.gz
+%{_datadir}/llvm/src/%{_arch}.site.cfg.py
+%{_datadir}/llvm/src/%{_arch}.Unit.site.cfg.py
 %{_datadir}/llvm/lit.fedora.cfg.py
 %{_bindir}/not
 %{_bindir}/count
@@ -495,6 +503,9 @@ fi
 %endif
 
 %changelog
+* Thu Jun 11 2020 sguelton@redhat.com - 10.0.0-5
+- Make llvm-test.tar.gz creation reproducible.
+
 * Tue Jun 02 2020 sguelton@redhat.com - 10.0.0-4
 - Instruct cmake not to generate RPATH
 
