@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 #%%global rc_ver 6
-%global baserelease 7
+%global baserelease 8
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
@@ -85,6 +85,10 @@ BuildRequires:	valgrind-devel
 BuildRequires:	libedit-devel
 # We need python3-devel for pathfix.py.
 BuildRequires:	python3-devel
+
+# For origin certification
+BuildRequires:	gnupg2
+
 
 Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 
@@ -163,6 +167,7 @@ LLVM's modified googletest sources.
 %endif
 
 %prep
+%{gpgverify} --keyring='%{SOURCE4}' --signature='%{SOURCE3}' --data='%{SOURCE0}'
 %autosetup -n %{llvm_srcdir} -p2
 
 pathfix.py -i %{__python3} -pn \
@@ -170,8 +175,6 @@ pathfix.py -i %{__python3} -pn \
 	tools/opt-viewer/*.py
 
 %build
-mkdir -p _build
-cd _build
 
 %ifarch s390 %{arm} %ix86
 # Decrease debuginfo verbosity to reduce memory consumption during final library linking
@@ -179,7 +182,7 @@ cd _build
 %endif
 
 # force off shared libs as cmake macros turns it on.
-%cmake .. -G Ninja \
+%cmake  -G Ninja \
 	-DBUILD_SHARED_LIBS:BOOL=OFF \
 	-DLLVM_PARALLEL_LINK_JOBS=1 \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -248,11 +251,11 @@ cd _build
 # Build libLLVM.so first.  This ensures that when libLLVM.so is linking, there
 # are no other compile jobs running.  This will help reduce OOM errors on the
 # builders without having to artificially limit the number of concurrent jobs.
-%ninja_build LLVM
-%ninja_build
+%cmake_build --target LLVM
+%cmake_build
 
 %install
-%ninja_install -C _build
+%cmake_install
 
 
 %if %{without compat_build}
@@ -268,7 +271,7 @@ mv %{buildroot}%{_mandir}/man1/tblgen.1 %{buildroot}%{_mandir}/man1/llvm-tblgen.
 
 for f in %{test_binaries}
 do
-    install -m 0755 ./_build/bin/$f %{buildroot}%{_bindir}
+    install -m 0755 %{_vpath_builddir}/bin/$f %{buildroot}%{_bindir}
 done
 
 # Remove testing of update utility tools
@@ -278,9 +281,9 @@ rm -rf test/tools/UpdateTestChecks
 
 # Install libraries needed for unittests
 %if 0%{?__isa_bits} == 64
-%global build_libdir _build/lib64
+%global build_libdir %{_vpath_builddir}/lib64
 %else
-%global build_libdir _build/lib
+%global build_libdir %{_vpath_builddir}/lib
 %endif
 
 install %{build_libdir}/libLLVMTestingSupport.a %{buildroot}%{_libdir}
@@ -298,8 +301,8 @@ cp -R utils/unittest %{install_srcdir}/utils/
 
 # Generate lit config files.  Strip off the last line that initiates the
 # test run, so we can customize the configuration.
-head -n -1 _build/test/lit.site.cfg.py >> %{lit_cfg}
-head -n -1 _build/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
+head -n -1 %{_vpath_builddir}/test/lit.site.cfg.py >> %{lit_cfg}
+head -n -1 %{_vpath_builddir}/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
 
 # Install custom fedora config file
 cp %{SOURCE2} %{buildroot}%{lit_fedora_cfg}
@@ -324,7 +327,7 @@ tar --sort=name --mtime='UTC 2020-01-01' -c test/ | gzip -n > %{install_srcdir}/
 
 # Install the unit test binaries
 mkdir -p %{build_llvm_libdir}
-cp -R _build/unittests %{build_llvm_libdir}/
+cp -R %{_vpath_builddir}/unittests %{build_llvm_libdir}/
 rm -rf `find %{build_llvm_libdir} -iname 'cmake*'`
 
 # Install libraries used for testing
@@ -381,7 +384,8 @@ rm -Rf %{build_install_prefix}/share/opt-viewer
 
 %check
 # TODO: Fix test failures on arm
-LD_LIBRARY_PATH=$PWD/_build/%{_lib} ninja check-all -C _build || \
+# FIXME: use %%cmake_build instead of %%__ninja
+LD_LIBRARY_PATH=%{buildroot}/%{_libdir}  %{__ninja} check-all -C %{_vpath_builddir} || \
 %ifarch %{arm}
   :
 %else
@@ -403,6 +407,7 @@ fi
 %endif
 
 %files
+%license LICENSE.TXT
 %exclude %{_mandir}/man1/llvm-config*
 %{_mandir}/man1/*
 %{_bindir}/*
@@ -422,6 +427,7 @@ fi
 %endif
 
 %files libs
+%license LICENSE.TXT
 %{pkg_libdir}/libLLVM-%{maj_ver}.so
 %if %{without compat_build}
 %if %{with gold}
@@ -442,6 +448,7 @@ fi
 %{pkg_libdir}/libRemarks.so*
 
 %files devel
+%license LICENSE.TXT
 %if %{without compat_build}
 %{_bindir}/llvm-config-%{__isa_bits}
 %{_mandir}/man1/llvm-config*
@@ -465,9 +472,11 @@ fi
 %endif
 
 %files doc
+%license LICENSE.TXT
 %doc %{_pkgdocdir}/html
 
 %files static
+%license LICENSE.TXT
 %if %{without compat_build}
 %{_libdir}/*.a
 %exclude %{_libdir}/libLLVMTestingSupport.a
@@ -479,6 +488,7 @@ fi
 %if %{without compat_build}
 
 %files test
+%license LICENSE.TXT
 %{_libexecdir}/tests/llvm/
 %{llvm_libdir}/unittests/
 %{_datadir}/llvm/src/unittests
@@ -497,19 +507,22 @@ fi
 %{_libdir}/cmake/llvm/LLVMTestExports.cmake
 
 %files googletest
+%license LICENSE.TXT
 %{_datadir}/llvm/src/utils
 %{_libdir}/libLLVMTestingSupport.a
 
 %endif
 
 %changelog
+* Sat Aug 01 2020 sguelton@redhat.com - 10.0.0-8
+- Fix gpg verification and update macro usage.
+
 * Sat Aug 01 2020 Fedora Release Engineering <releng@fedoraproject.org> - 10.0.0-7
 - Second attempt - Rebuilt for
   https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
 
 * Tue Jul 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 10.0.0-6
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
-
 * Thu Jun 11 2020 sguelton@redhat.com - 10.0.0-5
 - Make llvm-test.tar.gz creation reproducible.
 
