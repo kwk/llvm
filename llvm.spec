@@ -15,7 +15,7 @@
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
-%global patch_ver 0
+%global patch_ver 1
 
 
 %if %{with compat_build}
@@ -485,6 +485,9 @@ fi
 %endif
 
 %changelog
+* Mon Jul 27 2020 sguelton@redhat.com - 10.0.1-1
+- 10.0.1
+
 * Wed Apr 1 2020 sguelton@redhat.com - 10.0.0-1
 - 10.0.0 final
 
