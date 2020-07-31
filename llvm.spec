@@ -11,12 +11,11 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 #%%global rc_ver 6
-%global baserelease 8
+%global baserelease 9
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
 %global patch_ver 0
-
 
 %if %{with compat_build}
 %global pkg_name llvm%{maj_ver}.%{min_ver}
@@ -262,6 +261,9 @@ pathfix.py -i %{__python3} -pn \
 mkdir -p %{buildroot}/%{_bindir}
 mv %{buildroot}/%{_bindir}/llvm-config %{buildroot}/%{_bindir}/llvm-config-%{__isa_bits}
 
+# ghost presence
+touch %{buildroot}%{_bindir}/llvm-config
+
 # Fix some man pages
 ln -s llvm-config.1 %{buildroot}%{_mandir}/man1/llvm-config-%{__isa_bits}.1
 mv %{buildroot}%{_mandir}/man1/tblgen.1 %{buildroot}%{_mandir}/man1/llvm-tblgen.1
@@ -292,7 +294,6 @@ install %{build_libdir}/libLLVMTestingSupport.a %{buildroot}%{_libdir}
 %global lit_cfg test/%{_arch}.site.cfg.py
 %global lit_unit_cfg test/Unit/%{_arch}.site.cfg.py
 %global lit_fedora_cfg %{_datadir}/llvm/lit.fedora.cfg.py
-
 
 # Install gtest sources so clang can use them for gtest
 install -d %{install_srcdir}
@@ -401,7 +402,7 @@ LD_LIBRARY_PATH=%{buildroot}/%{_libdir}  %{__ninja} check-all -C %{_vpath_buildd
 
 %postun devel
 if [ $1 -eq 0 ]; then
-  %{_sbindir}/update-alternatives --remove llvm-config %{_bindir}/llvm-config
+  %{_sbindir}/update-alternatives --remove llvm-config %{_bindir}/llvm-config-%{__isa_bits}
 fi
 
 %endif
@@ -413,6 +414,7 @@ fi
 %{_bindir}/*
 
 %if %{without compat_build}
+%exclude %{_bindir}/llvm-config
 %exclude %{_bindir}/llvm-config-%{__isa_bits}
 %exclude %{_bindir}/not
 %exclude %{_bindir}/count
@@ -450,6 +452,7 @@ fi
 %files devel
 %license LICENSE.TXT
 %if %{without compat_build}
+%ghost %{_bindir}/llvm-config
 %{_bindir}/llvm-config-%{__isa_bits}
 %{_mandir}/man1/llvm-config*
 %{_includedir}/llvm
@@ -514,6 +517,9 @@ fi
 %endif
 
 %changelog
+* Sat Aug 01 2020 sguelton@redhat.com - 10.0.0-9
+- Fix update-alternative uninstall script
+
 * Sat Aug 01 2020 sguelton@redhat.com - 10.0.0-8
 - Fix gpg verification and update macro usage.
 
