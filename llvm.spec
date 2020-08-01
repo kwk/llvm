@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 #%%global rc_ver 6
-%global baserelease 6
+%global baserelease 7
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
@@ -503,6 +503,10 @@ fi
 %endif
 
 %changelog
+* Sat Aug 01 2020 Fedora Release Engineering <releng@fedoraproject.org> - 10.0.0-7
+- Second attempt - Rebuilt for
+  https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
+
 * Tue Jul 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 10.0.0-6
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
 
