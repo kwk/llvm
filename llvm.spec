@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 #%%global rc_ver 6
-%global baserelease 9
+%global baserelease 10
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
@@ -62,6 +62,7 @@ Patch0:		0001-CMake-Split-static-library-exports-into-their-own-ex.patch
 Patch1:		0001-CMake-Split-test-binary-exports-into-their-own-expor.patch
 %endif
 Patch2:		bab5908df544680ada0a3cf431f55aeccfbdb321.patch
+Patch3:		0001-llvm-Avoid-linking-llvm-cfi-verify-to-duplicate-libs.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -174,6 +175,15 @@ pathfix.py -i %{__python3} -pn \
 	tools/opt-viewer/*.py
 
 %build
+
+# Disable LTO on s390x, this causes some test failures:
+# LLVM-Unit :: Target/AArch64/./AArch64Tests/InstSizes.Authenticated
+# LLVM-Unit :: Target/AArch64/./AArch64Tests/InstSizes.PATCHPOINT
+# LLVM-Unit :: Target/AArch64/./AArch64Tests/InstSizes.STACKMAP
+# LLVM-Unit :: Target/AArch64/./AArch64Tests/InstSizes.TLSDESC_CALLSEQ
+%ifarch s390x
+%global _lto_cflags %{nil}
+%endif
 
 %ifarch s390 %{arm} %ix86
 # Decrease debuginfo verbosity to reduce memory consumption during final library linking
@@ -517,6 +527,10 @@ fi
 %endif
 
 %changelog
+* Tue Aug 04 2020 Tom Stellard <tstellar@redhat.com> - 10.0.0-10
+- Backport upstream patch to fix build with -flto.
+- Disable LTO on s390x to work-around unit test failures.
+
 * Sat Aug 01 2020 sguelton@redhat.com - 10.0.0-9
 - Fix update-alternative uninstall script
 
