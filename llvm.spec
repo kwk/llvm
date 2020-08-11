@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 %global rc_ver 1
-%global baserelease 0.1
+%global baserelease 0.2
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
@@ -175,7 +175,8 @@ LLVM's modified googletest sources.
 
 pathfix.py -i %{__python3} -pn \
 	test/BugPoint/compile-custom.ll.py \
-	tools/opt-viewer/*.py
+	tools/opt-viewer/*.py \
+	utils/update_cc_test_checks.py
 
 %build
 
@@ -313,6 +314,10 @@ install %{build_libdir}/libLLVMTestingSupport.a %{buildroot}%{_libdir}
 install -d %{install_srcdir}
 install -d %{install_srcdir}/utils/
 cp -R utils/unittest %{install_srcdir}/utils/
+
+# Clang needs these for running lit tests.
+cp utils/update_cc_test_checks.py %{install_srcdir}/utils/
+cp -R utils/UpdateTestChecks %{install_srcdir}/utils/
 
 # Generate lit config files.  Strip off the last line that initiates the
 # test run, so we can customize the configuration.
@@ -527,6 +532,9 @@ fi
 %endif
 
 %changelog
+* Tue Aug 11 2020 Tom Stellard <tstellar@redhat.com> - 11.0.0-0.2.rc1
+- Install update_cc_test_checks.py script
+
 * Thu Aug 06 2020 Tom Stellard <tstellar@redhat.com> - 11.0.0-0.1-rc1
 - LLVM 11.0.0-rc1 Release
 - Make llvm-devel require llvm-static and llvm-test
