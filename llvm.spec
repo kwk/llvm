@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 %global rc_ver 1
-%global baserelease 0.2
+%global baserelease 0.3
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
@@ -57,6 +57,9 @@ Source2:	lit.fedora.cfg.py
 %endif
 Source4:	https://prereleases.llvm.org/%{version}/hans-gpg-key.asc
 
+# https://reviews.llvm.org/D85007
+# https://bugzilla.redhat.com/show_bug.cgi?id=1862012
+Patch0: 0001-PowerPC-PPCBoolRetToInt-Skip-translation-if-there-is.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -532,6 +535,10 @@ fi
 %endif
 
 %changelog
+* Tue Aug 18 2020 Tom Stellard <tstellar@redhat.com> - 11.0.0-0.3.rc1
+- Fix rust crash on ppc64le compiling firefox
+- rhbz#1862012
+
 * Tue Aug 11 2020 Tom Stellard <tstellar@redhat.com> - 11.0.0-0.2.rc1
 - Install update_cc_test_checks.py script
 
