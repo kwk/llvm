@@ -13,9 +13,7 @@
       - repo: "https://src.fedoraproject.org/tests/llvm.git"
         dest: "llvm"
     tests:
-      - regression-tests:
-          dir: ./
-          run: /usr/libexec/tests/llvm/run-lit-tests --threads 1
+      - regression-tests
       - rust-sanity:
           dir: ./
           run: cargo new hello && cd hello && cargo run

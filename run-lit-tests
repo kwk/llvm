@@ -48,6 +48,7 @@ esac
 
 cd $(mktemp -d)
 ln -s /usr/include include
+ln -s /usr/share/llvm/src/docs docs
 tar -xzf /usr/share/llvm/src/test.tar.gz
 ln -s /usr/share/llvm/src/$ARCH.site.cfg.py test/lit.site.cfg.py
 ln -s /usr/share/llvm/src/$ARCH.Unit.site.cfg.py test/Unit/lit.site.cfg.py
