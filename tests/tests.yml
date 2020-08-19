@@ -8,9 +8,7 @@
       - rust
       - cargo
     tests:
-      - regression-tests:
-          dir: ./
-          run: /usr/libexec/tests/llvm/run-lit-tests --threads 1
+      - regression-tests
       - rust-sanity:
           dir: ./
           run: cargo new hello && cd hello && cargo run
@@ -20,9 +18,7 @@
       # which breaks the nightly compose.  So this test checks that libLLVM.so
       # is less than 100MB to ensure it was successfully stripped.
       # https://bugzilla.redhat.com/show_bug.cgi?id=1793250
-      - libllvm-size:
-        dir: ./
-        run: test `stat -L -c %s /usr/lib64/libLLVM.so` -lt 100000000
+      - libllvm-size
       # This test ensures that the spec file still builds correctly with
       # %global compat_build 1
       # FIXME: This fails, because the CI system has a hard-coded timeout of 4

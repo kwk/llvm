@@ -65,6 +65,8 @@ Patch1:		0001-CMake-Split-test-binary-exports-into-their-own-expor.patch
 # https://bugzilla.redhat.com/show_bug.cgi?id=1862012
 Patch2: 0001-PowerPC-PPCBoolRetToInt-Don-t-translate-Constant-s-o.patch
 
+Patch4:		0001-Normalize-working-directory-when-running-llvm-mc-in-.patch
+
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
 BuildRequires:	cmake
@@ -296,10 +298,21 @@ install -d %{install_srcdir}
 install -d %{install_srcdir}/utils/
 cp -R utils/unittest %{install_srcdir}/utils/
 
-# Generate lit config files.  Strip off the last line that initiates the
+# Clang needs these for running lit tests.
+for f in utils/*.py; do
+	sed '1 s|^.*$|#!/usr/bin/env python3|' $f > %{install_srcdir}/$f
+done
+cp -R utils/UpdateTestChecks %{install_srcdir}/utils/
+
+
+# One of the lit tests references this file
+install -d %{install_srcdir}/docs/CommandGuide/
+install -m 0644 docs/CommandGuide/dsymutil.rst %{install_srcdir}/docs/CommandGuide/
+
+# Generate lit config files.  Strip off the last lines that initiates the
 # test run, so we can customize the configuration.
-head -n -1 _build/test/lit.site.cfg.py >> %{lit_cfg}
-head -n -1 _build/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
+head -n -2 _build/test/lit.site.cfg.py >> %{lit_cfg}
+head -n -2 _build/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
 
 # Install custom fedora config file
 cp %{SOURCE2} %{buildroot}%{lit_fedora_cfg}
@@ -472,6 +485,7 @@ fi
 %{_datadir}/llvm/src/unittests
 %{_datadir}/llvm/src/test.tar.gz
 %{_datadir}/llvm/lit.fedora.cfg.py
+%{_datadir}/llvm/src/docs/CommandGuide/dsymutil.rst
 %{_bindir}/not
 %{_bindir}/count
 %{_bindir}/yaml-bench

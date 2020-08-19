@@ -1,5 +1,6 @@
 
 config.llvm_tools_dir = '/usr/bin'
+config.llvm_src_root = '/usr/share/llvm/src'
 config.llvm_shlib_dir = '%(llvm_shlib_dir)s' % lit_config.params
 
 if hasattr(config, 'host_triple'):
