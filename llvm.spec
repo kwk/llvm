@@ -10,8 +10,8 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global rc_ver 1
-%global baserelease 0.4
+%global rc_ver 2
+%global baserelease 0.5
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
@@ -540,6 +540,9 @@ fi
 %endif
 
 %changelog
+* Fri Aug 21 2020 Tom Stellard <tstellar@redhat.com> - 11.0.0-0.5.rc2
+- 11.0.0-rc2 Release
+
 * Wed Aug 19 2020 Tom Stellard <tstellar@redhat.com> - 11.0.0-0.4.rc1
 - Fix regression-tests CI tests
 
