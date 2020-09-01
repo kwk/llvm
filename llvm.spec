@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 %global rc_ver 2
-%global baserelease 0.5
+%global baserelease 0.6
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
@@ -44,18 +44,13 @@ Summary:	The Low Level Virtual Machine
 
 License:	NCSA
 URL:		http://llvm.org
-%if 0%{?rc_ver:1}
-Source0:	https://prereleases.llvm.org/%{version}/rc%{rc_ver}/%{llvm_srcdir}.tar.xz
-Source3:	https://prereleases.llvm.org/%{version}/rc%{rc_ver}/%{llvm_srcdir}.tar.xz.sig
-%else
-Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{llvm_srcdir}.tar.xz
-Source3:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{llvm_srcdir}.tar.xz.sig
-%endif
+Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}%{?rc_ver:-rc%{rc_ver}}/%{llvm_srcdir}.tar.xz
+Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}%{?rc_ver:-rc%{rc_ver}}/%{llvm_srcdir}.tar.xz.sig
+Source2:	https://prereleases.llvm.org/%{version}/hans-gpg-key.asc
 %if %{without compat_build}
-Source1:	run-lit-tests
-Source2:	lit.fedora.cfg.py
+Source3:	run-lit-tests
+Source4:	lit.fedora.cfg.py
 %endif
-Source4:	https://prereleases.llvm.org/%{version}/hans-gpg-key.asc
 
 # https://reviews.llvm.org/D85007
 # https://bugzilla.redhat.com/show_bug.cgi?id=1862012
@@ -173,7 +168,7 @@ LLVM's modified googletest sources.
 %endif
 
 %prep
-%{gpgverify} --keyring='%{SOURCE4}' --signature='%{SOURCE3}' --data='%{SOURCE0}'
+%{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
 %autosetup -n %{llvm_srcdir} -p2
 
 pathfix.py -i %{__python3} -pn \
@@ -332,7 +327,7 @@ head -n -2 %{_vpath_builddir}/test/lit.site.cfg.py >> %{lit_cfg}
 head -n -2 %{_vpath_builddir}/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
 
 # Install custom fedora config file
-cp %{SOURCE2} %{buildroot}%{lit_fedora_cfg}
+cp %{SOURCE4} %{buildroot}%{lit_fedora_cfg}
 
 # Patch lit config files to load custom fedora config:
 for f in %{lit_cfg} %{lit_unit_cfg}; do
@@ -340,7 +335,7 @@ for f in %{lit_cfg} %{lit_unit_cfg}; do
 done
 
 install -d %{buildroot}%{_libexecdir}/tests/llvm
-install -m 0755 %{SOURCE1} %{buildroot}%{_libexecdir}/tests/llvm
+install -m 0755 %{SOURCE3} %{buildroot}%{_libexecdir}/tests/llvm
 
 # Install lit tests.  We need to put these in a tarball otherwise rpm will complain
 # about some of the test inputs having the wrong object file format.
@@ -540,6 +535,9 @@ fi
 %endif
 
 %changelog
+* Tue Sep 01 2020 sguelton@redhat.com - 11.0.0-0.6.rc2
+- Fix source location
+
 * Fri Aug 21 2020 Tom Stellard <tstellar@redhat.com> - 11.0.0-0.5.rc2
 - 11.0.0-rc2 Release
 
