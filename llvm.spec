@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 %global rc_ver 2
-%global baserelease 0.6
+%global baserelease 0.7
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
@@ -52,9 +52,8 @@ Source3:	run-lit-tests
 Source4:	lit.fedora.cfg.py
 %endif
 
-# https://reviews.llvm.org/D85007
 # https://bugzilla.redhat.com/show_bug.cgi?id=1862012
-Patch0: 0001-PowerPC-PPCBoolRetToInt-Skip-translation-if-there-is.patch
+Patch0: 0001-PowerPC-PPCBoolRetToInt-Don-t-translate-Constant-s-o.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -535,6 +534,9 @@ fi
 %endif
 
 %changelog
+* Wed Sep 02 2020 sguelton@redhat.com - 11.0.0-0.7.rc2
+- Apply upstream patch for rhbz#1862012
+
 * Tue Sep 01 2020 sguelton@redhat.com - 11.0.0-0.6.rc2
 - Fix source location
 
