@@ -321,8 +321,8 @@ cp -R utils/UpdateTestChecks %{install_srcdir}/utils/
 
 # Generate lit config files.  Strip off the last line that initiates the
 # test run, so we can customize the configuration.
-head -n -1 %{_vpath_builddir}/test/lit.site.cfg.py >> %{lit_cfg}
-head -n -1 %{_vpath_builddir}/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
+head -n -2 %{_vpath_builddir}/test/lit.site.cfg.py >> %{lit_cfg}
+head -n -2 %{_vpath_builddir}/test/Unit/lit.site.cfg.py >> %{lit_unit_cfg}
 
 # Install custom fedora config file
 cp %{SOURCE2} %{buildroot}%{lit_fedora_cfg}
