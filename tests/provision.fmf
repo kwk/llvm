@@ -2,4 +2,4 @@
 
 standard-inventory-qcow2:
   qemu:
-    m: 2G
+    m: 4G
