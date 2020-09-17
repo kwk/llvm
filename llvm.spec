@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 #%%global rc_ver 6
-%global baserelease 3
+%global baserelease 4
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 10
 %global min_ver 0
@@ -503,6 +503,9 @@ fi
 %endif
 
 %changelog
+* Thu Sep 17 2020 sguelton@redhat.com - 10.0.1-4
+- rebuilt with gating update
+
 * Fri Sep 04 2020 sguelton@redhat.com - 10.0.1-3
 - Apply upstream patch for rhbz#1862012
 
