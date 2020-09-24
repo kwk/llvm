@@ -10,8 +10,8 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global rc_ver 2
-%global baserelease 0.7
+%global rc_ver 3
+%global baserelease 0.1
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
@@ -534,6 +534,9 @@ fi
 %endif
 
 %changelog
+* Thu Sep 24 2020 sguelton@redhat.com - 11.0.0-0.1.rc3
+- 11.0.0-rc3 Release
+
 * Wed Sep 02 2020 sguelton@redhat.com - 11.0.0-0.7.rc2
 - Apply upstream patch for rhbz#1862012
 
