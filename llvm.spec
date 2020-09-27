@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 %global rc_ver 3
-%global baserelease 0.2
+%global baserelease 0.8
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
@@ -531,6 +531,9 @@ fi
 %endif
 
 %changelog
+* Sun Sep 27 2020 sguelton@redhat.com - 11.0.0-0.8.rc3
+- Fix NVR
+
 * Thu Sep 24 2020 sguelton@redhat.com - 11.0.0-0.2.rc3
 - Obsolete patch for rhbz#1862012
 
