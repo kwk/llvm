@@ -10,8 +10,8 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global rc_ver 5
-%global baserelease 0.9
+%global rc_ver 6
+%global baserelease 0.10
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
@@ -531,6 +531,9 @@ fi
 %endif
 
 %changelog
+* Thu Oct 08 2020 sguelton@redhat.com - 11.0.0-0.10.rc6
+- 11.0.0-rc6
+
 * Fri Oct 02 2020 sguelton@redhat.com - 11.0.0-0.9.rc5
 - 11.0.0-rc5 Release
 
