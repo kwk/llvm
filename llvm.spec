@@ -10,8 +10,8 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global rc_ver 1
-%global baserelease 0.3
+#%%global rc_ver 1
+%global baserelease 0.4
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
@@ -56,8 +56,6 @@ Source1:	run-lit-tests
 Source2:	lit.fedora.cfg.py
 %endif
 Source4:	https://prereleases.llvm.org/%{version}/hans-gpg-key.asc
-
-Patch0:		0001-PowerPC-PPCBoolRetToInt-Don-t-translate-Constant-s-o.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -541,6 +539,9 @@ fi
 %endif
 
 %changelog
+* Tue Oct 13 2020 sguelton@redhat.com - 11.0.0-0.4
+- llvm 11.0.0 - final release
+
 * Fri Sep 04 2020 sguelton@redhat.com - 11.0.0-0.3.rc1
 - Apply upstream patch for rhbz#1862012
 
