@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 #%%global rc_ver 1
-%global baserelease 0.4
+%global baserelease 1
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
@@ -539,6 +539,9 @@ fi
 %endif
 
 %changelog
+* Thu Oct 15 2020 sguelton@redhat.com - 11.0.0-1
+- Fix NVR
+
 * Tue Oct 13 2020 sguelton@redhat.com - 11.0.0-0.4
 - llvm 11.0.0 - final release
 
