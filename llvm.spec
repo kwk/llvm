@@ -11,7 +11,7 @@
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
 #%%global rc_ver 6
-%global baserelease 1
+%global baserelease 2
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
@@ -54,6 +54,8 @@ Source4:	lit.fedora.cfg.py
 
 # Fix coreos-installer test crash on s390x (rhbz#1883457), https://reviews.llvm.org/D89034
 Patch1:		0001-SystemZ-Use-LA-instead-of-AGR-in-eliminateFrameIndex.patch
+
+Patch2:         0001-gcc11.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -534,6 +536,9 @@ fi
 %endif
 
 %changelog
+* Sat Oct 31 2020 Jeff Law <law@redhat.com> - 11.0.0-2
+- Fix missing #include for gcc-11
+
 * Wed Oct 14 2020 Josh Stone <jistone@redhat.com> - 11.0.0-1
 - Fix coreos-installer test crash on s390x (rhbz#1883457)
 
