@@ -10,12 +10,12 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-#%%global rc_ver 6
-%global baserelease 2
+%global rc_ver 1
+%global baserelease 1
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 0
-%global patch_ver 0
+%global patch_ver 1
 
 %if %{with compat_build}
 %global pkg_name llvm%{maj_ver}.%{min_ver}
@@ -46,7 +46,8 @@ License:	NCSA
 URL:		http://llvm.org
 Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}%{?rc_ver:-rc%{rc_ver}}/%{llvm_srcdir}.tar.xz
 Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}%{?rc_ver:-rc%{rc_ver}}/%{llvm_srcdir}.tar.xz.sig
-Source2:	https://prereleases.llvm.org/%{version}/hans-gpg-key.asc
+Source2:	tstellar-gpg-key.asc
+
 %if %{without compat_build}
 Source3:	run-lit-tests
 Source4:	lit.fedora.cfg.py
@@ -536,6 +537,9 @@ fi
 %endif
 
 %changelog
+* Tue Dec 01 2020 sguelton@redhat.com - 11.0.1-1.rc1
+- 11.0.1-rc1 release
+
 * Sat Oct 31 2020 Jeff Law <law@redhat.com> - 11.0.0-2
 - Fix missing #include for gcc-11
 
