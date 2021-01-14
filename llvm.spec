@@ -10,12 +10,12 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-#%%global rc_ver 2
-%global baserelease 4
+%global rc_ver 1
+%global baserelease 1
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
-%global min_ver 0
-%global patch_ver 1
+%global min_ver 1
+%global patch_ver 0
 
 %if %{with compat_build}
 %global pkg_name llvm%{maj_ver}.%{min_ver}
@@ -39,7 +39,7 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	%{baserelease}%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	%{?rc_ver:0.}%{baserelease}%{?rc_ver:.rc%{rc_ver}}%{?dist}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
@@ -56,7 +56,10 @@ Source4:	lit.fedora.cfg.py
 # Fix coreos-installer test crash on s390x (rhbz#1883457), https://reviews.llvm.org/D89034
 Patch1:		0001-SystemZ-Use-LA-instead-of-AGR-in-eliminateFrameIndex.patch
 
-Patch2:         0001-gcc11.patch
+Patch2:     0001-gcc11.patch
+
+# See https://bugzilla.redhat.com/show_bug.cgi?id=1916576
+Patch3:     builtin_mul_overflow.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -539,8 +542,8 @@ fi
 %endif
 
 %changelog
-* Wed Jan 06 2021 Serge Guelton - 11.0.1-4
-- LLVM 11.0.1 final
+* Thu Jan 14 2021 Serge Guelton - 11.1.0-0.1.rc1
+- 11.1.0-rc1 release
 
 * Tue Jan 05 2021 Serge Guelton - 11.0.1-3.rc2
 - Waive extra test case
