@@ -10,8 +10,8 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global rc_ver 1
-%global baserelease 1
+%global rc_ver 2
+%global baserelease 2
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
 %global maj_ver 11
 %global min_ver 1
@@ -542,6 +542,9 @@ fi
 %endif
 
 %changelog
+* Fri Jan 22 2021 Serge Guelton - 11.1.0-0.2.rc2
+- 11.1.0-rc2 release
+
 * Thu Jan 14 2021 Serge Guelton - 11.1.0-0.1.rc1
 - 11.1.0-rc1 release
 
