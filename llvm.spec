@@ -35,6 +35,14 @@
 %global pkg_libdir %{install_libdir}
 %endif
 
+%if 0%{?rhel}
+%global targets_to_build "X86;AMDGPU;PowerPC;NVPTX;SystemZ;AArch64;ARM;Mips;BPF"
+%global experimental_targets_to_build ""
+%else
+%global targets_to_build "all"
+%global experimental_targets_to_build "AVR"
+%endif
+
 %global build_install_prefix %{buildroot}%{install_prefix}
 
 Name:		%{pkg_name}
@@ -216,7 +224,7 @@ pathfix.py -i %{__python3} -pn \
 %endif
 %endif
 	\
-	-DLLVM_TARGETS_TO_BUILD=all \
+	-DLLVM_TARGETS_TO_BUILD=%{targets_to_build} \
 	-DLLVM_ENABLE_LIBCXX:BOOL=OFF \
 	-DLLVM_ENABLE_ZLIB:BOOL=ON \
 	-DLLVM_ENABLE_FFI:BOOL=ON \
@@ -224,7 +232,7 @@ pathfix.py -i %{__python3} -pn \
 %if %{with gold}
 	-DLLVM_BINUTILS_INCDIR=%{_includedir} \
 %endif
-	-DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=AVR \
+	-DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=%{experimental_targets_to_build} \
 	\
 	-DLLVM_BUILD_RUNTIME:BOOL=ON \
 	\
