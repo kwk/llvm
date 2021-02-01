@@ -10,12 +10,12 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global rc_ver 2
-%global baserelease 3
-%global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
-%global maj_ver 11
-%global min_ver 1
-%global patch_ver 0
+%global rc_ver ${RC_VER}
+%global baserelease ${BASERELEASE}
+%global llvm_srcdir llvm-project-${LATEST_GIT_SHA}
+%global maj_ver ${LLVM_VERSION_MAJOR}
+%global min_ver ${LLVM_VERSION_MINOR}
+%global patch_ver ${LLVM_VERSION_PATCH}
 
 %if %{with compat_build}
 %global pkg_name llvm%{maj_ver}.%{min_ver}
@@ -47,14 +47,15 @@
 
 Name:		%{pkg_name}
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	%{?rc_ver:0.}%{baserelease}%{?rc_ver:.rc%{rc_ver}}%{?dist}
+Release:	${RELEASE}
 Summary:	The Low Level Virtual Machine
 
 License:	NCSA
 URL:		http://llvm.org
-Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}%{?rc_ver:-rc%{rc_ver}}/%{llvm_srcdir}.tar.xz
-Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}%{?rc_ver:-rc%{rc_ver}}/%{llvm_srcdir}.tar.xz.sig
-Source2:	tstellar-gpg-key.asc
+Source0:	${LLVM_ARCHIVE_URL}
+#Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}%{?rc_ver:-rc%{rc_ver}}/%{llvm_srcdir}.tar.xz
+#Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}%{?rc_ver:-rc%{rc_ver}}/%{llvm_srcdir}.tar.xz.sig
+#Source2:	tstellar-gpg-key.asc
 
 %if %{without compat_build}
 Source3:	run-lit-tests
@@ -181,7 +182,7 @@ LLVM's modified googletest sources.
 %endif
 
 %prep
-%{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
+#%{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
 %autosetup -n %{llvm_srcdir} -p2
 
 pathfix.py -i %{__python3} -pn \

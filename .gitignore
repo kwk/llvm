@@ -90,3 +90,5 @@
 /llvm-11.1.0rc1.src.tar.xz
 /llvm-11.1.0rc2.src.tar.xz
 /llvm-11.1.0rc2.src.tar.xz.sig
+tmp/
+llvm.spec.out
