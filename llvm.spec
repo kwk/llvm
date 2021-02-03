@@ -10,11 +10,11 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global rc_ver 2
-%global baserelease 3
+%global rc_ver 1
+%global baserelease 1
 %global llvm_srcdir llvm-%{version}%{?rc_ver:rc%{rc_ver}}.src
-%global maj_ver 11
-%global min_ver 1
+%global maj_ver 12
+%global min_ver 0
 %global patch_ver 0
 
 %if %{with compat_build}
@@ -60,14 +60,6 @@ Source2:	tstellar-gpg-key.asc
 Source3:	run-lit-tests
 Source4:	lit.fedora.cfg.py
 %endif
-
-# Fix coreos-installer test crash on s390x (rhbz#1883457), https://reviews.llvm.org/D89034
-Patch1:		0001-SystemZ-Use-LA-instead-of-AGR-in-eliminateFrameIndex.patch
-
-Patch2:     0001-gcc11.patch
-
-# See https://bugzilla.redhat.com/show_bug.cgi?id=1916576
-Patch3:     builtin_mul_overflow.patch
 
 BuildRequires:	gcc
 BuildRequires:	gcc-c++
@@ -292,7 +284,7 @@ touch %{buildroot}%{_bindir}/llvm-config
 
 # Fix some man pages
 ln -s llvm-config.1 %{buildroot}%{_mandir}/man1/llvm-config-%{__isa_bits}.1
-mv %{buildroot}%{_mandir}/man1/tblgen.1 %{buildroot}%{_mandir}/man1/llvm-tblgen.1
+mv %{buildroot}%{_mandir}/man1/*tblgen.1 %{buildroot}%{_mandir}/man1/llvm-tblgen.1
 
 # Install binaries needed for lit tests
 %global test_binaries llvm-isel-fuzzer llvm-opt-fuzzer
@@ -550,6 +542,9 @@ fi
 %endif
 
 %changelog
+* Tue Feb 2 2021 Serge Guelton - 12.0.0-0.1.rc1
+- 12.0.0-rc1 release
+
 * Tue Jan 26 2021 Fedora Release Engineering <releng@fedoraproject.org> - 11.1.0-0.3.rc2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
 
