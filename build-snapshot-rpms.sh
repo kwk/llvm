@@ -24,8 +24,9 @@ export LLVM_ARCHIVE_URL=https://github.com/llvm/llvm-project/archive/${LATEST_GI
 
 # Get the UTC date in YYYYMMDD format
 YYYYMMDD=$(date --date='TZ="UTC"' +'%Y%m%d')
+export CHANGELOG_DATE=$(date --date='TZ="UTC"' +'%a %b %d')
 
-SNAPSHOT_NAME="${YYYYMMDD}git${LATEST_GIT_SHA_SHORT}"
+export SNAPSHOT_NAME="${YYYYMMDD}git${LATEST_GIT_SHA_SHORT}"
 
 # TODO(kwk): How to integrate the SNAPSHOT_NAME into the RELEASE below?
 export RELEASE="%{?rc_ver:0.}%{baserelease}%{?rc_ver:.rc%{rc_ver}}.${SNAPSHOT_NAME}%{?dist}"
@@ -37,9 +38,9 @@ export LLVM_VERSION_MINOR=$(grep --regexp="set(\s*LLVM_VERSION_MINOR" tmp/CMakeL
 export LLVM_VERSION_PATCH=$(grep --regexp="set(\s*LLVM_VERSION_PATCH" tmp/CMakeLists.txt | tr -d -c '[0-9]')
 export LLVM_VERSION="${LLVM_MAJOR_VERSION}.${LLVM_MINOR_VERSION}.${LLVM_PATCH_VERSION}"
 
-export RC_VER=1
-export BASERELEASE=1
-envsubst '${LLVM_VERSION_MAJOR} ${LLVM_VERSION_MINOR} ${LLVM_VERSION_PATCH} ${LLVM_ARCHIVE_URL} ${RELEASE} ${RC_VER} ${BASERELEASE}' < ./llvm.spec > llvm.spec.out
+export RC_VER=0
+export BASERELEASE=0
+envsubst '${LLVM_VERSION_MAJOR} ${LLVM_VERSION_MINOR} ${LLVM_VERSION_PATCH} ${LLVM_ARCHIVE_URL} ${RELEASE} ${RC_VER} ${BASERELEASE} ${CHANGELOG_DATE} ${SNAPSHOT_NAME}' < ./llvm.spec > llvm.spec.out
 
 # Ensure %{_sourcdir} points to a writable location
 mkdir -p /opt/notnfs/$USER/rpmbuild/SOURCES
