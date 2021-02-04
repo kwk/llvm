@@ -51,6 +51,15 @@ echo '%_topdir /opt/notnfs/$USER/rpmbuild' >> ~/.rpmmacros
 # Download files from the specfile into the current directory
 spectool -R -g -A -C . llvm.spec.out
 
+function cleanup(){
+    echo "Cleaning up..."
+    # Remove temporary files when done
+    rm -v \
+        ${LATEST_GIT_SHA}.zip \
+        tmp/CMakeLists.txt
+} 
+trap 'cleanup'  SIGINT SIGTERM ERR EXIT
+
 # Build SRPM
 time mock -r rawhide.cfg --spec=llvm.spec.out --sources=$PWD --buildsrpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
 
