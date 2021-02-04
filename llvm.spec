@@ -10,7 +10,6 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global rc_ver ${RC_VER}
 %global baserelease ${BASERELEASE}
 %global llvm_srcdir llvm-project-${LATEST_GIT_SHA}
 %global maj_ver ${LLVM_VERSION_MAJOR}
@@ -53,9 +52,6 @@ Summary:	The Low Level Virtual Machine
 License:	NCSA
 URL:		http://llvm.org
 Source0:	${LLVM_ARCHIVE_URL}
-#Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}%{?rc_ver:-rc%{rc_ver}}/%{llvm_srcdir}.tar.xz
-#Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}%{?rc_ver:-rc%{rc_ver}}/%{llvm_srcdir}.tar.xz.sig
-#Source2:	tstellar-gpg-key.asc
 
 %if %{without compat_build}
 Source3:	run-lit-tests
@@ -174,7 +170,6 @@ LLVM's modified googletest sources.
 %endif
 
 %prep
-#%{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
 %autosetup -n %{llvm_srcdir} -p2
 
 pathfix.py -i %{__python3} -pn \
