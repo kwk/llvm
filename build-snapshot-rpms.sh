@@ -24,7 +24,7 @@ export LLVM_ARCHIVE_URL=https://github.com/llvm/llvm-project/archive/${LATEST_GI
 
 # Get the UTC date in YYYYMMDD format
 YYYYMMDD=$(date --date='TZ="UTC"' +'%Y%m%d')
-export CHANGELOG_DATE=$(date --date='TZ="UTC"' +'%a %b %d')
+export CHANGELOG_DATE=$(date --date='TZ="UTC"' +'%a %b %e')
 
 export SNAPSHOT_NAME="${YYYYMMDD}git${LATEST_GIT_SHA_SHORT}"
 
