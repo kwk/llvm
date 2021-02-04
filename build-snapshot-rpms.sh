@@ -55,5 +55,5 @@ spectool -R -g -A -C . llvm.spec.out
 time mock -r rawhide.cfg --spec=llvm.spec.out --sources=$PWD --buildsrpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
 
 # Build RPM
-# TODO(kwk): Adjust version of file
-# time mock -r rawhide.cfg --rebuild $PWD/tmp/rpms/llvm-11.1.0-0.3.rc2.fc34.src.rpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
+FCVER=$(grep -F "config_opts['releasever'] = " /etc/mock/templates/fedora-rawhide.tpl | tr -d -c '0-9')
+time mock -r rawhide.cfg --rebuild $PWD/tmp/rpms/llvm-${LLVM_VERSION}-0.0.${SNAPSHOT_NAME}.fc${FCVER}.src.rpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
