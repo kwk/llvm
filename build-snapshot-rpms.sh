@@ -28,7 +28,7 @@ YYYYMMDD=$(date --date='TZ="UTC"' +'%Y%m%d')
 SNAPSHOT_NAME="${YYYYMMDD}git${LATEST_GIT_SHA_SHORT}"
 
 # TODO(kwk): How to integrate the SNAPSHOT_NAME into the RELEASE below?
-export RELEASE="%{?rc_ver:0.}%{baserelease}%{?rc_ver:.rc%{rc_ver}}${SNAPSHOT_NAME}%{?dist}"
+export RELEASE="%{?rc_ver:0.}%{baserelease}%{?rc_ver:.rc%{rc_ver}}.${SNAPSHOT_NAME}%{?dist}"
 
 # Get LLVM version from CMakeLists.txt
 wget -O tmp/CMakeLists.txt https://raw.githubusercontent.com/llvm/llvm-project/${LATEST_GIT_SHA}/llvm/CMakeLists.txt
