@@ -17,7 +17,7 @@ mkdir -pv /opt/notnfs/$USER/llvm-rpms/tmp
 cd /opt/notnfs/$USER/llvm-rpms
 
 # Get the latest git version and shorten it for the snapshot name
-LATEST_GIT_SHA=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/llvm/llvm-project/commits | jq -r '.[].sha' | head -1)
+export LATEST_GIT_SHA=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/llvm/llvm-project/commits | jq -r '.[].sha' | head -1)
 LATEST_GIT_SHA_SHORT=${LATEST_GIT_SHA:0:8}
 
 export LLVM_ARCHIVE_URL=https://github.com/llvm/llvm-project/archive/${LATEST_GIT_SHA}.zip
