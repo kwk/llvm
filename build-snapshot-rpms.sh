@@ -49,12 +49,10 @@ echo '%_topdir /opt/notnfs/$USER/rpmbuild' >> ~/.rpmmacros
 # Download files from the specfile into the current directory
 spectool -R -g -A -C . llvm.spec.out
 
+# Remove temporary files when done but only once, which is why we test before deletion.
 function cleanup(){
-    echo "Cleaning up..."
-    # Remove temporary files when done
-    rm -v \
-        ${LATEST_GIT_SHA}.zip \
-        tmp/CMakeLists.txt
+    test -f "${LATEST_GIT_SHA}.zip" && rm -v ${LATEST_GIT_SHA}.zip
+    test -f tmp/CMakeLists.txt && rm -v tmp/CMakeLists.txt
 } 
 trap 'cleanup'  SIGINT SIGTERM ERR EXIT
 
