@@ -10,7 +10,7 @@
 
 %global llvm_libdir %{_libdir}/%{name}
 %global build_llvm_libdir %{buildroot}%{llvm_libdir}
-%global baserelease ${BASERELEASE}
+%global baserelease 0
 %global llvm_srcdir llvm-project-${LATEST_GIT_SHA}
 %global maj_ver ${LLVM_VERSION_MAJOR}
 %global min_ver ${LLVM_VERSION_MINOR}

@@ -38,9 +38,7 @@ export LLVM_VERSION_MINOR=$(grep --regexp="set(\s*LLVM_VERSION_MINOR" tmp/CMakeL
 export LLVM_VERSION_PATCH=$(grep --regexp="set(\s*LLVM_VERSION_PATCH" tmp/CMakeLists.txt | tr -d -c '[0-9]')
 export LLVM_VERSION="${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}"
 
-export RC_VER=0
-export BASERELEASE=0
-envsubst '${LLVM_VERSION_MAJOR} ${LLVM_VERSION_MINOR} ${LLVM_VERSION_PATCH} ${LLVM_ARCHIVE_URL} ${RELEASE} ${RC_VER} ${BASERELEASE} ${CHANGELOG_DATE} ${SNAPSHOT_NAME}' < ./llvm.spec > llvm.spec.out
+envsubst '${LLVM_VERSION_MAJOR} ${LLVM_VERSION_MINOR} ${LLVM_VERSION_PATCH} ${LLVM_ARCHIVE_URL} ${RELEASE} ${CHANGELOG_DATE} ${SNAPSHOT_NAME}' < ./llvm.spec > llvm.spec.out
 
 # Ensure %{_sourcdir} points to a writable location
 mkdir -p /opt/notnfs/$USER/rpmbuild/SOURCES
@@ -65,4 +63,4 @@ time mock -r rawhide.cfg --spec=llvm.spec.out --sources=$PWD --buildsrpm --resul
 
 # Build RPM
 FCVER=$(grep -F "config_opts['releasever'] = " /etc/mock/templates/fedora-rawhide.tpl | tr -d -c '0-9')
-time mock -r rawhide.cfg --rebuild $PWD/tmp/rpms/llvm-${LLVM_VERSION}-0.0.${SNAPSHOT_NAME}.fc${FCVER}.src.rpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
+time mock -r rawhide.cfg --rebuild $PWD/tmp/rpms/llvm-${LLVM_VERSION}-0.${SNAPSHOT_NAME}.fc${FCVER}.src.rpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
