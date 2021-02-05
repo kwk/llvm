@@ -23,6 +23,7 @@ cd /opt/notnfs/$USER/llvm-rpms
 
 # Get the latest git version and shorten it for the snapshot name
 
+LATEST_GIT_SHA=${LATEST_GIT_SHA:-}
 if [ -z "${LATEST_GIT_SHA}"]; then
     LATEST_GIT_SHA=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/llvm/llvm-project/commits | jq -r '.[].sha' | head -1)
 fi
