@@ -13,14 +13,21 @@ set -eux
 # in the pipeline.
 set -o pipefail
 
+# Define for which PROJECTS we want to build RPMS.
+# See https://github.com/tstellar/llvm-project/blob/release-automation/llvm/utils/release/export.sh#L16
+# PROJECTS=${VARIABLE:-"llvm clang test-suite compiler-rt libcxx libcxxabi clang-tools-extra polly lldb lld openmp libunwind"}
+PROJECTS=${PROJECTS:-"llvm"}
+
 mkdir -pv /opt/notnfs/$USER/llvm-rpms/tmp
 cd /opt/notnfs/$USER/llvm-rpms
 
 # Get the latest git version and shorten it for the snapshot name
-export LATEST_GIT_SHA=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/llvm/llvm-project/commits | jq -r '.[].sha' | head -1)
-LATEST_GIT_SHA_SHORT=${LATEST_GIT_SHA:0:8}
 
-export LLVM_ARCHIVE_URL=https://github.com/llvm/llvm-project/archive/${LATEST_GIT_SHA}.zip
+if [ -z "${LATEST_GIT_SHA}"]; then
+    LATEST_GIT_SHA=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/llvm/llvm-project/commits | jq -r '.[].sha' | head -1)
+fi
+export LATEST_GIT_SHA
+export LATEST_GIT_SHA_SHORT=${LATEST_GIT_SHA:0:8}
 
 # Get the UTC date in YYYYMMDD format
 YYYYMMDD=$(date --date='TZ="UTC"' +'%Y%m%d')
@@ -37,6 +44,22 @@ export LLVM_VERSION_MAJOR=$(grep --regexp="set(\s*LLVM_VERSION_MAJOR" tmp/CMakeL
 export LLVM_VERSION_MINOR=$(grep --regexp="set(\s*LLVM_VERSION_MINOR" tmp/CMakeLists.txt | tr -d -c '[0-9]')
 export LLVM_VERSION_PATCH=$(grep --regexp="set(\s*LLVM_VERSION_PATCH" tmp/CMakeLists.txt | tr -d -c '[0-9]')
 export LLVM_VERSION="${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}"
+
+FCVER=$(grep -F "config_opts['releasever'] = " /etc/mock/templates/fedora-rawhide.tpl | tr -d -c '0-9')
+
+LLVM_SRC_DIR=$PWD/llvm-project
+mkdir -pv ${LLVM_SRC_DIR}
+
+curl -L https://github.com/llvm/llvm-project/archive/${LATEST_GIT_SHA}.tar.gz \
+  | tar -C ${LLVM_SRC_DIR} --strip-components=1 -xzf -
+
+for proj in $PROJECTS; do
+    echo "Creating tarball for $proj ..."
+    mv $LLVM_SRC_DIR/$proj ${LLVM_SRC_DIR}/$proj-${SNAPSHOT_NAME}.src
+    tar -C {$LLVM_SRC_DIR} -cJf $proj-${SNAPSHOT_NAME}.src.tar.xz $proj-${SNAPSHOT_NAME}.src
+done
+
+export LLVM_ARCHIVE_URL=llvm-${SNAPSHOT_NAME}.src.tar.xz
 
 envsubst '${LATEST_GIT_SHA} ${LLVM_VERSION_MAJOR} ${LLVM_VERSION_MINOR} ${LLVM_VERSION_PATCH} ${LLVM_ARCHIVE_URL} ${RELEASE} ${CHANGELOG_DATE} ${SNAPSHOT_NAME}' < ./llvm.spec.in > llvm.spec
 
@@ -60,5 +83,5 @@ trap 'cleanup'  SIGINT SIGTERM ERR EXIT
 time mock -r rawhide.cfg --spec=llvm.spec --sources=$PWD --buildsrpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
 
 # Build RPM
-FCVER=$(grep -F "config_opts['releasever'] = " /etc/mock/templates/fedora-rawhide.tpl | tr -d -c '0-9')
+
 time mock -r rawhide.cfg --rebuild $PWD/tmp/rpms/llvm-${LLVM_VERSION}-0.${SNAPSHOT_NAME}.fc${FCVER}.src.rpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
