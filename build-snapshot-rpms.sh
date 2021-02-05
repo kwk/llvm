@@ -38,7 +38,7 @@ export LLVM_VERSION_MINOR=$(grep --regexp="set(\s*LLVM_VERSION_MINOR" tmp/CMakeL
 export LLVM_VERSION_PATCH=$(grep --regexp="set(\s*LLVM_VERSION_PATCH" tmp/CMakeLists.txt | tr -d -c '[0-9]')
 export LLVM_VERSION="${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}"
 
-envsubst '${LATEST_GIT_SHA} ${LLVM_VERSION_MAJOR} ${LLVM_VERSION_MINOR} ${LLVM_VERSION_PATCH} ${LLVM_ARCHIVE_URL} ${RELEASE} ${CHANGELOG_DATE} ${SNAPSHOT_NAME}' < ./llvm.spec > llvm.spec.out
+envsubst '${LATEST_GIT_SHA} ${LLVM_VERSION_MAJOR} ${LLVM_VERSION_MINOR} ${LLVM_VERSION_PATCH} ${LLVM_ARCHIVE_URL} ${RELEASE} ${CHANGELOG_DATE} ${SNAPSHOT_NAME}' < ./llvm.spec.in > llvm.spec
 
 # Ensure %{_sourcdir} points to a writable location
 mkdir -p /opt/notnfs/$USER/rpmbuild/SOURCES
@@ -47,7 +47,7 @@ echo '%_topdir /opt/notnfs/$USER/rpmbuild' >> ~/.rpmmacros
 # rpm --eval '%{_sourcedir}'
 
 # Download files from the specfile into the current directory
-spectool -R -g -A -C . llvm.spec.out
+spectool -R -g -A -C . llvm.spec
 
 # Remove temporary files when done but only once, which is why we test before deletion.
 function cleanup(){
@@ -57,8 +57,8 @@ function cleanup(){
 trap 'cleanup'  SIGINT SIGTERM ERR EXIT
 
 # Build SRPM
-time mock -r rawhide.cfg --spec=llvm.spec.out --sources=$PWD --buildsrpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
+time mock -r rawhide.cfg --spec=llvm.spec --sources=$PWD --buildsrpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
 
 # Build RPM
 FCVER=$(grep -F "config_opts['releasever'] = " /etc/mock/templates/fedora-rawhide.tpl | tr -d -c '0-9')
-time mock -r rawhide.cfg --spec=llvm.spec.out --rebuild $PWD/tmp/rpms/llvm-${LLVM_VERSION}-0.${SNAPSHOT_NAME}.fc${FCVER}.src.rpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
+time mock -r rawhide.cfg --rebuild $PWD/tmp/rpms/llvm-${LLVM_VERSION}-0.${SNAPSHOT_NAME}.fc${FCVER}.src.rpm --resultdir=$PWD/tmp/rpms/ --no-cleanup-after --isolation=simple
