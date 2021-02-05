@@ -57,7 +57,7 @@ curl -L https://github.com/llvm/llvm-project/archive/${LATEST_GIT_SHA}.tar.gz \
 for proj in $PROJECTS; do
     echo "Creating tarball for $proj ..."
     mv $LLVM_SRC_DIR/$proj ${LLVM_SRC_DIR}/$proj-${SNAPSHOT_NAME}.src
-    tar -C {$LLVM_SRC_DIR} -cJf $proj-${SNAPSHOT_NAME}.src.tar.xz $proj-${SNAPSHOT_NAME}.src
+    tar -C $LLVM_SRC_DIR -cJf $proj-${SNAPSHOT_NAME}.src.tar.xz $proj-${SNAPSHOT_NAME}.src
 done
 
 export LLVM_ARCHIVE_URL=llvm-${SNAPSHOT_NAME}.src.tar.xz
